@@ -148,6 +148,7 @@ class SpeechAnalysisAgent:
         
         # List of open-source audio classification models on Hugging Face (ordered by priority)
         hf_models = [
+            "Mitran14/speach-agent",
             "speechbrain/spkrec-ecapa-voxceleb",
             "facebook/wav2vec2-base-960h",
             "superb/wav2vec2-base-superb-ks"
