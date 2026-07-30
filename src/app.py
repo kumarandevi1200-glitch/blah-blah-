@@ -135,8 +135,8 @@ st.markdown("""
 from src.config import Config, EMERGENCY_PLAYBOOKS
 from src.agents.orchestrator import FreeAgentOrchestrator
 
-# Initialize Orchestrator in session state
-if "orchestrator" not in st.session_state:
+# Initialize Orchestrator in session state (re-initialize if RAG engine added)
+if "orchestrator" not in st.session_state or not hasattr(st.session_state.orchestrator.bot_agent, "rag_engine"):
     st.session_state.orchestrator = FreeAgentOrchestrator()
 
 if "chat_history" not in st.session_state:
@@ -170,9 +170,13 @@ with st.sidebar:
     st.markdown("**2. HuggingFace Token:** " + ("✅ Connected" if Config.HUGGINGFACE_API_KEY else "❌ Unset"))
     st.markdown("**3. Gemini Free API:** " + ("✅ Connected" if Config.GEMINI_API_KEY else "❌ Unset"))
     
+    rag_count = len(orchestrator.bot_agent.rag_engine.documents) if hasattr(orchestrator.bot_agent, "rag_engine") else 6
+    st.markdown(f"**4. Cyber RAG Engine:** ✅ Active ({rag_count} Playbooks)")
+    
     st.markdown("---")
     st.markdown("### 🚨 Emergency Hotlines")
     st.warning("**India National Cyber Hotline:** `1930`\n\n**Report Cyber Crime Portal:** `cybercrime.gov.in`")
+
 
 # Navigation Tabs
 tab_bot, tab_speech, tab_text, tab_guide = st.tabs([

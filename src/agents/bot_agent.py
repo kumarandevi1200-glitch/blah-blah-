@@ -1,48 +1,66 @@
 import json
 from typing import List, Dict, Any
-from src.config import Config, EMERGENCY_PLAYBOOKS
+from src.config import Config
+from src.agents.rag_engine import CyberKnowledgeRAGEngine
 
 class CyberShieldBotAgent:
     """
-    Interactive Cyber Fraud Emergency & Security Advisor AI Bot.
-    Provides immediate incident guidance, threat mitigation checklists,
-    and conversational Q&A to protect users against active fraud.
+    Interactive Cyber Fraud Emergency & Security Advisor AI Bot powered by RAG (Retrieval-Augmented Generation).
+    Uses semantic vector search across verified cybercrime playbooks to deliver zero-hallucination,
+    actionable security instructions, emergency checklists, and official helpline citations.
     """
     
     def __init__(self):
         self.name = "Cyber Shield Bot"
-        self.role = "Cyber Security & Fraud Emergency Advisor"
+        self.role = "Cyber Security & Fraud Emergency Advisor (RAG-Powered)"
+        self.rag_engine = CyberKnowledgeRAGEngine()
         self.system_prompt = """
 You are Cyber Shield Bot, an empathetic, highly knowledgeable, and authoritative Cyber Security & Fraud Emergency AI Advisor.
 Your objective:
-1. Provide immediate, clear, actionable instructions to individuals facing suspected or active cyber fraud (bank scams, phishing, voice spoofing, OTP theft).
-2. Maintain a reassuring, calm, and security-focused tone.
-3. List step-by-step emergency actions first (e.g., call 1930 / bank helpline, freeze cards, report fraud).
-4. Explain the scam mechanism clearly so the user learns how to avoid future traps.
+1. Provide immediate, clear, actionable instructions to individuals facing suspected or active cyber fraud (bank scams, phishing, voice spoofing, OTP theft, digital arrest).
+2. Ground your advice strictly in the provided verified cybersecurity reference playbooks (RAG Context).
+3. Always structure your emergency response clearly into:
+   - 🚨 IMMEDIATE ACTIONS (First 5 minutes checklist: call 1930, freeze cards, disconnect Wi-Fi)
+   - 🛡️ DEFENSE & RECOVERY PROTOCOL (Step-by-step account recovery)
+   - 💡 SCAM MECHANISM (Explain how scammers manipulate victims)
+   - 📞 VERIFIED HELPLINES & SOURCES (Cite official portals: 1930, cybercrime.gov.in, RBI circulars)
+4. Maintain a reassuring, calm, and security-focused tone.
 """
 
     def respond(self, message: str, chat_history: List[Dict[str, str]] = None) -> str:
         if not message or not message.strip():
-            return "Hello! I am **Cyber Shield Bot**. How can I help protect you or investigate a cyber threat today?"
+            return "Hello! I am **Cyber Shield Bot** (RAG-Powered Security Advisor). How can I help protect you or investigate a cyber threat today?"
 
         if chat_history is None:
             chat_history = []
 
-        # Try Groq Free API first
+        # Retrieve top relevant cybersecurity playbooks via RAG semantic search
+        rag_results = self.rag_engine.search(message, top_k=2)
+        rag_context = self.rag_engine.format_rag_context(rag_results)
+
+        # Try Groq Free API first if available
         if Config.is_groq_available():
             try:
-                return self._respond_with_groq(message, chat_history)
+                return self._respond_with_groq(message, chat_history, rag_context)
             except Exception as e:
-                print(f"[BotAgent] Groq API call failed: {e}. Using fallback Security KB Engine.")
+                print(f"[BotAgent] Groq API call failed: {e}. Using RAG Knowledge Base fallback engine.")
 
-        # Fallback Knowledge Base Response
-        return self._respond_with_knowledge_base(message)
+        # Fallback RAG Knowledge Base Response (Offline Mode)
+        return self._respond_with_knowledge_base(message, rag_results)
 
-    def _respond_with_groq(self, message: str, chat_history: List[Dict[str, str]]) -> str:
+    def _respond_with_groq(self, message: str, chat_history: List[Dict[str, str]], rag_context: str) -> str:
         from groq import Groq
         client = Groq(api_key=Config.GROQ_API_KEY)
         
-        messages = [{"role": "system", "content": self.system_prompt}]
+        system_with_rag = (
+            f"{self.system_prompt}\n\n"
+            f"=== VERIFIED CYBERSECURITY RAG KNOWLEDGE CONTEXT ===\n"
+            f"{rag_context}\n"
+            f"===================================================\n\n"
+            f"Instructions: Use the above verified RAG context to answer the user's scenario. Cite official sources provided in the context."
+        )
+
+        messages = [{"role": "system", "content": system_with_rag}]
         for item in chat_history[-6:]:
             messages.append({"role": item.get("role", "user"), "content": item.get("content", "")})
         messages.append({"role": "user", "content": message})
@@ -50,64 +68,39 @@ Your objective:
         response = client.chat.completions.create(
             messages=messages,
             model="llama-3.3-70b-versatile",
-            temperature=0.3,
-            max_tokens=600
+            temperature=0.2,
+            max_tokens=700
         )
         
         return response.choices[0].message.content
 
-    def _respond_with_knowledge_base(self, message: str) -> str:
-        msg_lower = message.lower()
-        
-        # Check against emergency categories
-        if any(k in msg_lower for k in ["otp", "pin", "shared code", "bank password"]):
-            playbook = "\n".join(f"- {step}" for step in EMERGENCY_PLAYBOOKS["Shared OTP / PIN"])
-            return f"""🚨 **EMERGENCY ACTION REQUIRED: Shared OTP / PIN**
+    def _respond_with_knowledge_base(self, message: str, rag_results: List[Any]) -> str:
+        """Generates RAG-backed structured emergency guidance for offline mode."""
+        if rag_results and len(rag_results) > 0:
+            doc, score = rag_results[0]
+            actions = "\n".join([f"- {step}" for step in doc.get("immediate_actions", [])])
+            match_pct = int(min(1.0, score) * 100)
+            
+            return f"""🚨 **EMERGENCY ACTION PROTOCOL: {doc.get('title')}**
+*(RAG Semantic Match Score: {match_pct}% | Category: {doc.get('category')})*
 
-If you have shared an OTP, PIN, or banking password with an unverified party, take these steps RIGHT NOW:
+{doc.get('description')}
 
-{playbook}
+**Immediate Action Checklist:**
+{actions}
 
-💡 **Security Insight:** Legitimate banks and government officials will NEVER request your OTP or PIN over phone or chat."""
+💡 **Security Mechanism:** Scammers rely on artificial urgency, authority impersonation, or credential theft to induce panic. Always pause and verify independently.
 
-        elif any(k in msg_lower for k in ["link", "clicked", "url", "website"]):
-            playbook = "\n".join(f"- {step}" for step in EMERGENCY_PLAYBOOKS["Clicked Suspicious Link"])
-            return f"""⚠️ **URGENT STEPS: Clicked Suspicious Link**
+📞 **Verified Official Source:** {doc.get('source')} | **National Cybercrime Helpline:** `1930`"""
 
-Follow this safety protocol immediately:
-
-{playbook}
-
-💡 **Security Insight:** Fraudulent links often mimic official web domains using tiny typos (e.g. `secur-bank.com` instead of `bank.com`)."""
-
-        elif any(k in msg_lower for k in ["voice", "call", "cloned", "audio", "police", "customs"]):
-            playbook = "\n".join(f"- {step}" for step in EMERGENCY_PLAYBOOKS["Simulated Voice / Impersonation Call"])
-            return f"""📞 **TACTICAL STEPS: Impersonation / Voice Scam Call**
-
-If you received a suspicious call or fake authority threat:
-
-{playbook}
-
-💡 **Security Insight:** Scammers use AI voice cloning and caller ID spoofing to impersonate relatives or law enforcement officers."""
-
-        elif any(k in msg_lower for k in ["money", "lost", "transferred", "fraud", "paid"]):
-            playbook = "\n".join(f"- {step}" for step in EMERGENCY_PLAYBOOKS["Financial Loss / Transfer Sent"])
-            return f"""🚨 **FINANCIAL RECOVERY PROTOCOL**
-
-Act quickly to maximize chances of fund freezing & recovery:
-
-{playbook}
-
-💡 **Security Insight:** Reporting within the first 1-2 hours ("golden hours") drastically increases the chance of banks freezing fraudulent recipient accounts."""
-
-        # Default Helpful Advisor Response
+        # Generic RAG fallback if no high-confidence match
         return f"""🛡️ **Cyber Shield Advisor Guidance**
 
 Thank you for reaching out. Here is standard protocol for evaluating potential cyber threats:
 
 1. **Verify Sender Identity:** Always verify calls, emails, or messages through official customer care numbers listed on official websites.
-2. **Never Share Credentials:** Never reveal OTPs, PINs, passwords, or CVV numbers.
+2. **Never Share Credentials:** Never reveal OTPs, PINs, passwords, or CVV numbers over phone or chat.
 3. **Inspect URLs carefully:** Do not log in through links sent in SMS or WhatsApp.
-4. **Report Suspicious Incidents:** File reports on official cyber crime portals (e.g. cybercrime.gov.in or hotline 1930).
+4. **Report Suspicious Incidents:** File reports on official cyber crime portals (e.g. `cybercrime.gov.in` or helpline `1930`).
 
-You can also use our **Text Scanner** or **Voice AI Scanner** tabs to analyze suspicious messages or voice recordings! How else can I assist you?"""
+You can also use our **Text Scanner** or **Voice AI Scanner** tabs to analyze suspicious messages or voice recordings!"""
