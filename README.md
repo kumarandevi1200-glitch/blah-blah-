@@ -144,6 +144,44 @@ HackIndia/
 
 ---
 
+---
+
+## 📊 Text Fraud ML Model
+
+Cyber Fraud Shield now includes a **trained ML classifier** to detect SMS/text scams with higher accuracy than pure keyword heuristics.
+
+### Dataset
+- **Source:** [SMS Spam Collection Dataset](https://www.kaggle.com/datasets/uciml/sms-spam-collection-dataset) (UCI ML Repository)
+- **Size:** 5,574 labeled SMS messages (ham/spam)
+- **Location:** `src/model/data/sms_spam_dataset.csv`
+
+### Pipeline
+- **TF-IDF Vectorizer** with uni-gram & bi-gram features (max 5,000 features)
+- **Logistic Regression** classifier
+- Train/test split: 80/20, stratified
+
+### Performance
+| Metric    | Value  |
+|-----------|--------|
+| Accuracy  | ~97.9% |
+| F1 (spam) | ~0.91  |
+
+### Retraining
+To retrain from scratch (e.g., with additional data):
+```bash
+pip install -r requirements.txt
+python -m src.model.train_text_model
+```
+
+This regenerates:
+- `src/model/artifacts/tfidf_vectorizer.joblib`
+- `src/model/artifacts/fraud_classifier.joblib`
+
+### Known Limitation
+The dataset skews toward spam-style promotional messages. Legitimate transactional notifications (shipping confirmations, delivery updates, OTP messages) may occasionally receive elevated risk scores. Future work includes augmenting the dataset with more "legitimate notification" examples.
+
+---
+
 ## 🚨 Emergency Contacts (India & Global)
 
 - **National Cyber Crime Helpline (India):** `1930`
