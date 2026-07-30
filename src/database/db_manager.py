@@ -2,13 +2,16 @@ import sqlite3
 import os
 import secrets
 import hashlib
+import json
+from contextlib import contextmanager
 from typing import Dict, Any, Optional, Tuple
 
 class DatabaseManager:
     """
     Thread-safe SQLite Database Manager for Cyber Fraud Shield.
-    Handles user authentication (salted PBKDF2 SHA-256 password hashing)
-    and user personal profile records.
+    Handles user authentication (salted PBKDF2 SHA-256 password hashing),
+    user personal profile records, and end-to-end data idempotency management
+    for both backend operations and AI agents.
     """
 
     def __init__(self, db_path: str = None):
@@ -19,15 +22,19 @@ class DatabaseManager:
         self.db_path = db_path
         self.init_db()
 
-    def _get_connection(self) -> sqlite3.Connection:
-        """Establishes a database connection with PRAGMA foreign_keys enabled."""
+    @contextmanager
+    def _get_connection(self):
+        """Establishes a database connection with PRAGMA foreign_keys enabled and ensures connection is closed on exit."""
         conn = sqlite3.connect(self.db_path, timeout=10.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")
-        return conn
+        try:
+            yield conn
+        finally:
+            conn.close()
 
     def init_db(self):
-        """Creates 'users' and 'user_profiles' tables if they do not exist."""
+        """Creates 'users', 'user_profiles', and 'idempotency_records' tables if they do not exist."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             
@@ -56,7 +63,128 @@ class DatabaseManager:
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
             """)
+
+            # Table 3: idempotency_records (Data Idempotency cache for Backend & Agents)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS idempotency_records (
+                idempotency_key TEXT PRIMARY KEY,
+                request_hash TEXT NOT NULL,
+                scope TEXT NOT NULL,
+                response_json TEXT NOT NULL,
+                status_code INTEGER DEFAULT 200,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+            # Table 4: idempotent_scan_history (Unique scan logs for incident deduplication)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS idempotent_scan_history (
+                scan_hash TEXT PRIMARY KEY,
+                scan_type TEXT NOT NULL,
+                input_summary TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
             conn.commit()
+
+    def generate_idempotency_key(self, payload: Any, prefix: str = "") -> str:
+        """
+        Generates a deterministic SHA-256 idempotency key for any string, bytes, or dict payload.
+        """
+        if isinstance(payload, bytes):
+            data_bytes = payload
+        elif isinstance(payload, dict):
+            data_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
+        else:
+            data_bytes = str(payload).strip().encode("utf-8")
+        
+        digest = hashlib.sha256(data_bytes).hexdigest()
+        return f"{prefix}:{digest}" if prefix else digest
+
+    def get_idempotent_record(self, idempotency_key: str, scope: str = "") -> Optional[Dict[str, Any]]:
+        """
+        Retrieves cached response dict for an idempotency key if available.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if scope:
+                cursor.execute(
+                    "SELECT response_json, created_at FROM idempotency_records WHERE idempotency_key = ? AND scope = ?",
+                    (idempotency_key, scope)
+                )
+            else:
+                cursor.execute(
+                    "SELECT response_json, created_at FROM idempotency_records WHERE idempotency_key = ?",
+                    (idempotency_key,)
+                )
+            
+            row = cursor.fetchone()
+            if row:
+                try:
+                    data = json.loads(row["response_json"])
+                    data["idempotent_hit"] = True
+                    data["idempotency_key"] = idempotency_key
+                    data["cached_at"] = row["created_at"]
+                    return data
+                except Exception:
+                    pass
+        return None
+
+    def save_idempotent_record(
+        self,
+        idempotency_key: str,
+        request_hash: str,
+        scope: str,
+        response_data: Dict[str, Any],
+        status_code: int = 200
+    ) -> bool:
+        """
+        Stores an operation response idempotently. Uses INSERT OR REPLACE for atomicity.
+        """
+        try:
+            # Ensure idempotent flags in stored data
+            data_to_store = dict(response_data)
+            data_to_store.pop("idempotent_hit", None)
+            
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT OR REPLACE INTO idempotency_records (idempotency_key, request_hash, scope, response_json, status_code)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (idempotency_key, request_hash, scope, json.dumps(data_to_store), status_code))
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"[DatabaseManager] Failed to save idempotency record: {e}")
+            return False
+
+    def clear_idempotency_cache(self, scope: Optional[str] = None) -> Tuple[bool, str]:
+        """Purges cached idempotency records from database."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                if scope:
+                    cursor.execute("DELETE FROM idempotency_records WHERE scope = ?", (scope,))
+                else:
+                    cursor.execute("DELETE FROM idempotency_records;")
+                deleted_count = cursor.rowcount
+                conn.commit()
+                return True, f"Purged {deleted_count} idempotency cache records."
+        except Exception as e:
+            return False, f"Failed to clear cache: {e}"
+
+    def get_idempotency_stats(self) -> Dict[str, Any]:
+        """Returns statistics on active idempotency cache records across scopes."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT scope, COUNT(*) as count FROM idempotency_records GROUP BY scope")
+            rows = cursor.fetchall()
+            stats_by_scope = {row["scope"]: row["count"] for row in rows}
+            
+            cursor.execute("SELECT COUNT(*) as total FROM idempotency_records")
+            total = cursor.fetchone()["total"]
+            return {"total_records": total, "by_scope": stats_by_scope}
 
     def _hash_password(self, password: str, salt: bytes = None) -> Tuple[str, str]:
         """Hashes password using PBKDF2-HMAC-SHA256 with 100,000 iterations."""
@@ -83,8 +211,8 @@ class DatabaseManager:
         address: str = ""
     ) -> Tuple[bool, str]:
         """
-        Registers a new user and creates their personal profile record inside a single SQL transaction.
-        Returns (success_boolean, message).
+        Registers a new user idempotently inside a single SQL transaction.
+        If identical details are submitted multiple times, returns an idempotent success message.
         """
         username = username.strip()
         email = email.strip().lower()
@@ -94,18 +222,27 @@ class DatabaseManager:
         if not username or not email or not password or not full_name or not mobile_number:
             return False, "All required fields (username, email, password, full name, mobile number) must be filled."
 
-        pwd_hash, salt_hex = self._hash_password(password)
-
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Check for existing username/email
-                cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
-                if cursor.fetchone():
-                    return False, "Username or Email is already registered."
+                # Check for existing username or email
+                cursor.execute("""
+                    SELECT u.id, u.username, u.email, u.password_hash, u.salt, p.full_name, p.mobile_number
+                    FROM users u
+                    LEFT JOIN user_profiles p ON u.id = p.user_id
+                    WHERE LOWER(u.username) = ? OR LOWER(u.email) = ?
+                """, (username.lower(), email))
+                
+                existing = cursor.fetchone()
+                if existing:
+                    # Idempotency check: if credentials match, return idempotent success
+                    if self._verify_password(password, existing["password_hash"], existing["salt"]):
+                        return True, "Account is already registered (Idempotent response). Please log in."
+                    return False, "Username or Email is already registered with different credentials."
 
-                # Insert into users table
+                # New User insertion
+                pwd_hash, salt_hex = self._hash_password(password)
                 cursor.execute(
                     "INSERT INTO users (username, email, password_hash, salt) VALUES (?, ?, ?, ?)",
                     (username, email, pwd_hash, salt_hex)
@@ -183,16 +320,36 @@ class DatabaseManager:
         mobile_number: str,
         address: str
     ) -> Tuple[bool, str]:
-        """Updates personal details in user_profiles table."""
+        """
+        Updates personal details in user_profiles table idempotently.
+        If data is unchanged, returns an idempotent success message without mutating database timestamps.
+        """
         try:
+            clean_name = full_name.strip()
+            clean_mobile = mobile_number.strip()
+            clean_address = address.strip()
+
             with self._get_connection() as conn:
                 cursor = conn.cursor()
+                cursor.execute("SELECT full_name, age, mobile_number, address FROM user_profiles WHERE user_id = ?", (user_id,))
+                current = cursor.fetchone()
+                
+                if current:
+                    if (
+                        current["full_name"] == clean_name and
+                        current["age"] == age and
+                        current["mobile_number"] == clean_mobile and
+                        (current["address"] or "") == clean_address
+                    ):
+                        return True, "Profile is already up to date (Idempotent response)."
+
                 cursor.execute("""
                     UPDATE user_profiles
                     SET full_name = ?, age = ?, mobile_number = ?, address = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ?
-                """, (full_name.strip(), age, mobile_number.strip(), address.strip(), user_id))
+                """, (clean_name, age, clean_mobile, clean_address, user_id))
                 conn.commit()
                 return True, "Profile updated successfully!"
         except Exception as e:
             return False, f"Failed to update profile: {e}"
+

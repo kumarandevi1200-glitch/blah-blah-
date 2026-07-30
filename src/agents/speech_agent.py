@@ -14,15 +14,28 @@ class SpeechAnalysisAgent:
     3. Content Fraud Analysis (piping transcription into TextScamDetectorAgent)
     """
     
-    def __init__(self):
+    def __init__(self, db_manager=None):
         self.name = "Speech & Voice Spoof Agent"
         self.role = "Voice Transcription & AI Cloned Voice Detector"
-        self.text_agent = TextScamDetectorAgent()
+        if db_manager is None:
+            from src.database.db_manager import DatabaseManager
+            db_manager = DatabaseManager()
+        self.db = db_manager
+        self.text_agent = TextScamDetectorAgent(db_manager=self.db)
 
-    def analyze_audio(self, audio_bytes: bytes, filename: str = "recording.wav") -> Dict[str, Any]:
+    def analyze_audio(self, audio_bytes: bytes, filename: str = "recording.wav", idempotency_key: str = None) -> Dict[str, Any]:
         """
-        Main entry point to analyze an uploaded audio clip.
+        Main entry point to analyze an uploaded audio clip with end-to-end data idempotency.
         """
+        # Step 0: Idempotency Key Check
+        if not idempotency_key:
+            payload = audio_bytes + filename.encode("utf-8")
+            idempotency_key = self.db.generate_idempotency_key(payload, prefix="speech_scan")
+
+        cached_res = self.db.get_idempotent_record(idempotency_key, scope="speech_scan")
+        if cached_res:
+            return cached_res
+
         # Step 1: Transcribe audio to text
         transcription, transcription_engine = self._transcribe(audio_bytes, filename)
         
@@ -40,7 +53,7 @@ class SpeechAnalysisAgent:
         text_score = content_analysis.get("risk_score", 0)
         voice_risk_score = min(100, int((text_score * 0.6) + (synthetic_confidence * 0.4 if is_synthetic else text_score * 0.4)))
         
-        return {
+        result = {
             "transcription": transcription,
             "transcription_engine": transcription_engine,
             "voice_spoof_metrics": voice_metrics,
@@ -48,8 +61,20 @@ class SpeechAnalysisAgent:
             "content_analysis": content_analysis,
             "overall_voice_risk_score": voice_risk_score,
             "overall_threat_level": content_analysis.get("threat_level", "Caution"),
-            "summary": f"Voice clip transcribed. Synthetic Voice Probability: {synthetic_confidence}%. Fraud Content Score: {text_score}/100."
+            "summary": f"Voice clip transcribed. Synthetic Voice Probability: {synthetic_confidence}%. Fraud Content Score: {text_score}/100.",
+            "idempotent_hit": False,
+            "idempotency_key": idempotency_key
         }
+
+        # Step 4: Cache result in idempotency table
+        self.db.save_idempotent_record(
+            idempotency_key=idempotency_key,
+            request_hash=idempotency_key.split(":")[-1],
+            scope="speech_scan",
+            response_data=result
+        )
+
+        return result
 
     def _transcribe(self, audio_bytes: bytes, filename: str) -> Tuple[str, str]:
         """

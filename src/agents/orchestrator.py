@@ -2,6 +2,7 @@ from typing import Dict, Any
 from src.agents.text_agent import TextScamDetectorAgent
 from src.agents.speech_agent import SpeechAnalysisAgent
 from src.agents.bot_agent import CyberShieldBotAgent
+from src.database.db_manager import DatabaseManager
 from src.config import Config
 
 class FreeAgentOrchestrator:
@@ -12,18 +13,23 @@ class FreeAgentOrchestrator:
     - CyberShieldBotAgent (RAG-Powered Conversational Emergency Advisor)
     
     Demonstrates Multi-Agent Collaboration using Free APIs (Groq, HuggingFace, Gemini)
-    and graceful offline RAG vector fallbacks.
+    with 100% end-to-end Data Idempotency.
     """
-    def __init__(self):
-        self.text_agent = TextScamDetectorAgent()
-        self.speech_agent = SpeechAnalysisAgent()
-        self.bot_agent = CyberShieldBotAgent()
+    def __init__(self, db_manager: DatabaseManager = None):
+        if db_manager is None:
+            db_manager = DatabaseManager()
+        self.db = db_manager
+        self.text_agent = TextScamDetectorAgent(db_manager=self.db)
+        self.speech_agent = SpeechAnalysisAgent(db_manager=self.db)
+        self.bot_agent = CyberShieldBotAgent(db_manager=self.db)
 
     def get_agent_status(self) -> Dict[str, Any]:
         kb_count = len(self.bot_agent.rag_engine.documents)
+        idempotency_stats = self.db.get_idempotency_stats()
         return {
             "mode": Config.active_mode(),
             "rag_documents": kb_count,
+            "idempotency_stats": idempotency_stats,
             "agents": [
                 {
                     "name": self.text_agent.name,
@@ -48,7 +54,7 @@ class FreeAgentOrchestrator:
 
     def process_full_incident(self, text_input: str = None, audio_bytes: bytes = None, filename: str = "") -> Dict[str, Any]:
         """
-        Runs multi-agent investigation across provided text and/or speech inputs.
+        Runs multi-agent investigation across provided text and/or speech inputs idempotently.
         """
         results = {}
         

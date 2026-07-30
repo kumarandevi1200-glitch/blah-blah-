@@ -8,3 +8,12 @@ __pycache__/
 .idea/
 *.db
 *.sqlite3
+
+# Flutter build artifacts
+cyber_shield_flutter/build/
+cyber_shield_flutter/.dart_tool/
+cyber_shield_flutter/.flutter-plugins
+cyber_shield_flutter/.flutter-plugins-dependencies
+cyber_shield_flutter/.pub-cache/
+cyber_shield_flutter/.pub/
+
