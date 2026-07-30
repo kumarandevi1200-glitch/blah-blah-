@@ -131,9 +131,10 @@ class CyberKnowledgeRAGEngine:
             query_str = query.lower()
             for kw in keywords:
                 if kw in query_str:
-                    sim += 0.35
+                    sim += 0.25
             
-            scores.append((self.documents[idx], round(sim, 3)))
+            normalized_score = min(1.0, round(sim, 3))
+            scores.append((self.documents[idx], normalized_score))
 
         # Sort by similarity score descending
         scores.sort(key=lambda x: x[1], reverse=True)
@@ -147,8 +148,9 @@ class CyberKnowledgeRAGEngine:
         formatted_blocks = []
         for idx, (doc, score) in enumerate(search_results, 1):
             actions = "\n".join([f"   - {step}" for step in doc.get("immediate_actions", [])])
+            match_pct = int(min(1.0, score) * 100)
             block = (
-                f"--- Verified Reference #{idx}: {doc.get('title')} (Relevance: {int(score * 100)}%) ---\n"
+                f"--- Verified Reference #{idx}: {doc.get('title')} (Relevance: {match_pct}%) ---\n"
                 f"Category: {doc.get('category')}\n"
                 f"Description: {doc.get('description')}\n"
                 f"Emergency Action Steps:\n{actions}\n"

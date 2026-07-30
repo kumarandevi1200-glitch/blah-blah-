@@ -79,9 +79,10 @@ Your objective:
         if rag_results and len(rag_results) > 0:
             doc, score = rag_results[0]
             actions = "\n".join([f"- {step}" for step in doc.get("immediate_actions", [])])
+            match_pct = int(min(1.0, score) * 100)
             
             return f"""🚨 **EMERGENCY ACTION PROTOCOL: {doc.get('title')}**
-*(RAG Semantic Match Score: {int(score * 100)}% | Category: {doc.get('category')})*
+*(RAG Semantic Match Score: {match_pct}% | Category: {doc.get('category')})*
 
 {doc.get('description')}
 
