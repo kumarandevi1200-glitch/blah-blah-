@@ -9,10 +9,10 @@ class FreeAgentOrchestrator:
     Multi-Agent Orchestrator connecting specialized AI agents:
     - TextScamDetectorAgent (Text & URL Fraud Analysis)
     - SpeechAnalysisAgent (Voice Transcription & Synthetic Spoof Detection)
-    - CyberShieldBotAgent (Conversational Incident Response & Emergency Guidance)
+    - CyberShieldBotAgent (RAG-Powered Conversational Emergency Advisor)
     
     Demonstrates Multi-Agent Collaboration using Free APIs (Groq, HuggingFace, Gemini)
-    and graceful offline fallbacks.
+    and graceful offline RAG vector fallbacks.
     """
     def __init__(self):
         self.text_agent = TextScamDetectorAgent()
@@ -20,8 +20,10 @@ class FreeAgentOrchestrator:
         self.bot_agent = CyberShieldBotAgent()
 
     def get_agent_status(self) -> Dict[str, Any]:
+        kb_count = len(self.bot_agent.rag_engine.documents)
         return {
             "mode": Config.active_mode(),
+            "rag_documents": kb_count,
             "agents": [
                 {
                     "name": self.text_agent.name,
@@ -38,7 +40,7 @@ class FreeAgentOrchestrator:
                 {
                     "name": self.bot_agent.name,
                     "role": self.bot_agent.role,
-                    "provider": "Groq / Gemini / Security KB",
+                    "provider": f"Groq Llama-3.3-70B + RAG Vector Engine ({kb_count} Security Playbooks)",
                     "free_tier": "100% Free API Available"
                 }
             ]

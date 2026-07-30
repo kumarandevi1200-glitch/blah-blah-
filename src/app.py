@@ -169,10 +169,12 @@ with st.sidebar:
     st.markdown("**1. Groq Free API:** " + ("✅ Connected" if Config.GROQ_API_KEY else "❌ Unset (Using Heuristic Engine)"))
     st.markdown("**2. HuggingFace Token:** " + ("✅ Connected" if Config.HUGGINGFACE_API_KEY else "❌ Unset"))
     st.markdown("**3. Gemini Free API:** " + ("✅ Connected" if Config.GEMINI_API_KEY else "❌ Unset"))
+    st.markdown(f"**4. Cyber RAG Engine:** ✅ Active ({len(orchestrator.bot_agent.rag_engine.documents)} Playbooks)")
     
     st.markdown("---")
     st.markdown("### 🚨 Emergency Hotlines")
     st.warning("**India National Cyber Hotline:** `1930`\n\n**Report Cyber Crime Portal:** `cybercrime.gov.in`")
+
 
 # Navigation Tabs
 tab_bot, tab_speech, tab_text, tab_guide = st.tabs([
