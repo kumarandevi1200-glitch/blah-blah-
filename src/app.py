@@ -306,11 +306,47 @@ with tab_speech:
                     """, unsafe_allow_html=True)
 
                 st.markdown("#### 📝 Speech-to-Text Transcription")
-                st.code(result["transcription"], language="text")
-                st.caption(f"Engine: {result['transcription_engine']}")
+                st.info(f"\"{result['transcription']}\"")
+                st.caption(f"🎙️ STT Engine: `{result['transcription_engine']}`")
 
-                st.markdown("#### 🔬 Acoustic Voice Artifact Inspection")
-                st.json(result["voice_spoof_metrics"])
+                st.markdown("---")
+                st.markdown("### 🔬 Executive Voice Forensics & Forensic Report")
+
+                col_f1, col_f2 = st.columns(2)
+
+                with col_f1:
+                    st.markdown("""
+                    <div class="glass-card">
+                        <h4 style="margin-top:0; color:#38bdf8;">🎙️ Acoustic & Spectral Analysis</h4>
+                    """, unsafe_allow_html=True)
+                    
+                    spoof_m = result['voice_spoof_metrics']
+                    st.markdown(f"**Voice Signature:** `{spoof_m.get('voice_nature', 'N/A')}`")
+                    st.markdown(f"**Pitch Micro-Stability:** `{spoof_m.get('pitch_stability', 'N/A')}`")
+                    st.markdown(f"**Spectral Flatness Index:** `{spoof_m.get('spectral_flatness', 0.0)}`")
+                    st.caption(f"Detector Engine: `{result.get('voice_spoof_engine', 'Acoustic Evaluator')}`")
+                    
+                    st.markdown("**Detected Acoustic Artifacts:**")
+                    for artifact in spoof_m.get("artifacts_detected", []):
+                        icon = "⚠️" if spoof_m.get("is_synthetic") else "✅"
+                        st.markdown(f"- {icon} {artifact}")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                with col_f2:
+                    content_eval = result.get("content_analysis", {})
+                    st.markdown("""
+                    <div class="glass-card">
+                        <h4 style="margin-top:0; color:#818cf8;">🔍 Spoken Content Threat Evaluation</h4>
+                    """, unsafe_allow_html=True)
+                    st.markdown(f"**Fraud Category:** `{content_eval.get('scam_type', 'N/A')}`")
+                    st.markdown(f"**Threat Classification:** `{content_eval.get('threat_level', 'Caution')}`")
+                    
+                    st.markdown("**Matched Scam Cues:**")
+                    for tactic in content_eval.get("matched_tactics", []):
+                        st.markdown(f"- 🚩 {tactic}")
+                    
+                    st.markdown(f"💡 **Actionable Advice:** {content_eval.get('actionable_advice', 'Verify caller identity before acting.')}")
+                    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # TAB 3: TEXT SCAM SCANNER
