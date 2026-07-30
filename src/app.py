@@ -134,6 +134,7 @@ st.markdown("""
 # Imports after page config
 from src.config import Config, EMERGENCY_PLAYBOOKS
 from src.agents.orchestrator import FreeAgentOrchestrator
+from src.database.db_manager import DatabaseManager
 
 # Initialize Orchestrator in session state (re-initialize if RAG engine added)
 if "orchestrator" not in st.session_state or not hasattr(st.session_state.orchestrator.bot_agent, "rag_engine"):
@@ -142,7 +143,14 @@ if "orchestrator" not in st.session_state or not hasattr(st.session_state.orches
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+if "db" not in st.session_state:
+    st.session_state.db = DatabaseManager()
+
+if "user" not in st.session_state:
+    st.session_state.user = None
+
 orchestrator = st.session_state.orchestrator
+db = st.session_state.db
 
 # Header Banner
 st.markdown("""
@@ -156,6 +164,18 @@ st.markdown("""
 with st.sidebar:
     st.image("https://img.icons8.com/isometric/96/shield.png", width=70)
     st.title("System Status")
+    
+    # Account status in sidebar
+    if st.session_state.user:
+        u = st.session_state.user
+        st.markdown(f"👤 **Logged in as:** `{u['username']}`")
+        if st.button("🔒 Logout", key="sidebar_logout", use_container_width=True):
+            st.session_state.user = None
+            st.rerun()
+    else:
+        st.caption("🔒 Guest Mode (Log in under 'User Account' tab)")
+
+    st.markdown("---")
     
     active_mode = Config.active_mode()
     if "Free API" in active_mode:
@@ -179,10 +199,11 @@ with st.sidebar:
 
 
 # Navigation Tabs
-tab_bot, tab_speech, tab_text, tab_guide = st.tabs([
+tab_bot, tab_speech, tab_text, tab_profile, tab_guide = st.tabs([
     "🤖 Cyber Shield Bot (AI Assistant)",
     "🎙️ Speech & Voice AI Scanner",
     "🔍 Text Scam Scanner",
+    "👤 User Account & Profile",
     "📚 Free AI Agents & Setup Instructions"
 ])
 
@@ -397,7 +418,113 @@ with tab_text:
                 st.info(f"💡 **Actionable Advice:** {analysis.get('actionable_advice', '')}")
 
 # ==========================================
-# TAB 4: FREE AI AGENTS & SETUP GUIDE
+# TAB 4: USER ACCOUNT & PERSONAL PROFILE
+# ==========================================
+with tab_profile:
+    st.markdown("### 👤 User Account & Personal Details")
+    
+    if st.session_state.user is None:
+        st.caption("Log in to your account or register a new profile to personalize your security assistant.")
+        
+        login_tab, register_tab = st.tabs(["🔑 Login", "📝 Register New Account"])
+        
+        with login_tab:
+            st.markdown("#### Login to Cyber Shield")
+            login_user = st.text_input("Username or Email", key="login_user_input")
+            login_pass = st.text_input("Password", type="password", key="login_pass_input")
+            
+            if st.button("🔑 Log In", type="primary", use_container_width=True):
+                user_data, msg = db.authenticate_user(login_user, login_pass)
+                if user_data:
+                    st.session_state.user = user_data
+                    st.success(f"Welcome back, {user_data['full_name']}!")
+                    st.rerun()
+                else:
+                    st.error(msg)
+                    
+        with register_tab:
+            st.markdown("#### Create New User Profile")
+            with st.form("register_form"):
+                col_r1, col_r2 = st.columns(2)
+                with col_r1:
+                    reg_username = st.text_input("Username *", placeholder="johndoe")
+                    reg_email = st.text_input("Email Address *", placeholder="john@example.com")
+                    reg_password = st.text_input("Password *", type="password")
+                    reg_fullname = st.text_input("Full Name *", placeholder="John Doe")
+                with col_r2:
+                    reg_age = st.number_input("Age *", min_value=18, max_value=120, value=25)
+                    reg_mobile = st.text_input("Mobile Number *", placeholder="+91 9876543210")
+                    reg_address = st.text_area("Residential Address", placeholder="Street, City, State, Pincode", height=100)
+                
+                submitted = st.form_submit_button("📝 Register Account", use_container_width=True)
+                if submitted:
+                    success, msg = db.register_user(
+                        username=reg_username,
+                        email=reg_email,
+                        password=reg_password,
+                        full_name=reg_fullname,
+                        age=reg_age,
+                        mobile_number=reg_mobile,
+                        address=reg_address
+                    )
+                    if success:
+                        st.success(msg)
+                    else:
+                        st.error(msg)
+    else:
+        u = st.session_state.user
+        st.markdown(f"#### 🛡️ Welcome, **{u['full_name']}** (`@{u['username']}`)")
+        
+        col_p1, col_p2 = st.columns([1.2, 1])
+        
+        with col_p1:
+            st.markdown("""
+            <div class="glass-card">
+                <h4 style="margin-top:0; color:#38bdf8;">📋 Saved Personal Profile Details</h4>
+            """, unsafe_allow_html=True)
+            st.markdown(f"**Full Name:** `{u.get('full_name')}`")
+            st.markdown(f"**Username:** `@{u.get('username')}`")
+            st.markdown(f"**Email:** `{u.get('email')}`")
+            st.markdown(f"**Age:** `{u.get('age')}` years old")
+            st.markdown(f"**Mobile Number:** `{u.get('mobile_number')}`")
+            st.markdown(f"**Address:** `{u.get('address') or 'Not provided'}`")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            if st.button("🔒 Log Out of Account", type="secondary", use_container_width=True):
+                st.session_state.user = None
+                st.rerun()
+
+        with col_p2:
+            st.markdown("#### ✏️ Edit Profile Information")
+            with st.form("edit_profile_form"):
+                edit_name = st.text_input("Full Name", value=u.get('full_name', ''))
+                edit_age = st.number_input("Age", min_value=18, max_value=120, value=int(u.get('age') or 25))
+                edit_mobile = st.text_input("Mobile Number", value=u.get('mobile_number', ''))
+                edit_address = st.text_area("Residential Address", value=u.get('address', ''), height=100)
+                
+                saved = st.form_submit_button("💾 Save Profile Changes", use_container_width=True)
+                if saved:
+                    ok, msg = db.update_user_profile(
+                        user_id=u['user_id'],
+                        full_name=edit_name,
+                        age=edit_age,
+                        mobile_number=edit_mobile,
+                        address=edit_address
+                    )
+                    if ok:
+                        updated_profile = db.get_user_profile(u['user_id'])
+                        if updated_profile:
+                            st.session_state.user['full_name'] = updated_profile['full_name']
+                            st.session_state.user['age'] = updated_profile['age']
+                            st.session_state.user['mobile_number'] = updated_profile['mobile_number']
+                            st.session_state.user['address'] = updated_profile['address']
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+
+# ==========================================
+# TAB 5: FREE AI AGENTS & SETUP GUIDE
 # ==========================================
 with tab_guide:
     st.markdown("### 📚 Free AI Keys & Agents Setup Guide")
