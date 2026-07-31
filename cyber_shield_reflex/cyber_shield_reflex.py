@@ -13,17 +13,17 @@ from cyber_shield_reflex.components import (
 
 
 def index() -> rx.Component:
-    """Home Page Component (Landing overview stretched full-screen)."""
+    """Home Landing Page Component (Clean layout without embedded FAQs)."""
     return rx.box(
         header(),
         hero(),
         how_it_works(),
-        faq(),
         footer(),
         bot_agent(),
         background="#F7F9F8",
         min_height="100vh",
         width="100%",
+        overflow_x="hidden",
         font_family="'Outfit', sans-serif",
     )
 
@@ -38,20 +38,7 @@ def scan_page() -> rx.Component:
         background="#F7F9F8",
         min_height="100vh",
         width="100%",
-        font_family="'Outfit', sans-serif",
-    )
-
-
-def model_insights_page() -> rx.Component:
-    """Model Insights & Architecture Page."""
-    return rx.box(
-        header(),
-        architecture(),
-        footer(),
-        bot_agent(),
-        background="#F7F9F8",
-        min_height="100vh",
-        width="100%",
+        overflow_x="hidden",
         font_family="'Outfit', sans-serif",
     )
 
@@ -66,6 +53,7 @@ def suspect_intelligence_page() -> rx.Component:
         background="#F7F9F8",
         min_height="100vh",
         width="100%",
+        overflow_x="hidden",
         font_family="'Outfit', sans-serif",
     )
 
@@ -106,12 +94,13 @@ def volunteers_page() -> rx.Component:
         background="#F7F9F8",
         min_height="100vh",
         width="100%",
+        overflow_x="hidden",
         font_family="'Outfit', sans-serif",
     )
 
 
 def docs_page() -> rx.Component:
-    """Help & Documentation Page."""
+    """Dedicated Help, Architecture & Official FAQs Page."""
     return rx.box(
         header(),
         architecture(),
@@ -121,6 +110,7 @@ def docs_page() -> rx.Component:
         background="#F7F9F8",
         min_height="100vh",
         width="100%",
+        overflow_x="hidden",
         font_family="'Outfit', sans-serif",
     )
 
@@ -141,6 +131,7 @@ app = rx.App(
             "margin": "0",
             "padding": "0",
             "box_sizing": "border-box",
+            "overflow_x": "hidden !important",
         },
         "::selection": {
             "background": "#1B6E5B",
@@ -149,10 +140,9 @@ app = rx.App(
     },
 )
 
-# Multi-Page Routes
+# Clean Page Routes
 app.add_page(index, route="/", title="Cyber Fraud Shield | Home")
 app.add_page(scan_page, route="/scan", title="Cyber Fraud Shield | Report & Scan")
 app.add_page(suspect_intelligence_page, route="/suspect-intelligence", title="Cyber Fraud Shield | Suspect Intelligence")
-app.add_page(model_insights_page, route="/model-insights", title="Cyber Fraud Shield | Model Insights")
 app.add_page(volunteers_page, route="/volunteers", title="Cyber Fraud Shield | Volunteers")
-app.add_page(docs_page, route="/docs", title="Cyber Fraud Shield | Help & Docs")
+app.add_page(docs_page, route="/docs", title="Cyber Fraud Shield | Help & Docs / FAQs")

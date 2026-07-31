@@ -71,7 +71,7 @@ def footer() -> rx.Component:
                         rx.heading("Help & Support", font_size="18px", font_weight="700", color="#0F172A", font_family="'Space Grotesk', sans-serif", margin_bottom="8px"),
                         chevron_item("Feedback", href="/docs"),
                         chevron_item("Contact Us", href="#contact-us"),
-                        chevron_item("FAQ", href="#faq-section"),
+                        chevron_item("FAQ", href="/docs#faq-section"),
                         spacing="2",
                         align="start",
                     ),

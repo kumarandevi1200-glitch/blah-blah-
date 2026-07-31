@@ -121,9 +121,8 @@ def header() -> rx.Component:
                         nav_link("Home", "/"),
                         nav_link("Report Voice Fraud", "/scan"),
                         nav_link("Suspect Intelligence", "/suspect-intelligence"),
-                        nav_link("Model Insights", "/model-insights"),
                         nav_link("Volunteers", "/volunteers"),
-                        nav_link("Help & Docs", "/docs"),
+                        nav_link("Help & Docs / FAQs", "/docs"),
                         
                         # Top-Right User Login / Profile Button
                         rx.cond(

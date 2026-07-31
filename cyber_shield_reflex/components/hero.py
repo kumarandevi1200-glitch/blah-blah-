@@ -146,8 +146,8 @@ def hero() -> rx.Component:
                     rx.link(
                         rx.button(
                             rx.hstack(
-                                rx.icon("cpu", size=18),
-                                rx.text("View Model Architecture"),
+                                rx.icon("circle-help", size=18),
+                                rx.text("View Help & FAQs"),
                                 spacing="2",
                             ),
                             size="3",
@@ -162,7 +162,7 @@ def hero() -> rx.Component:
                             cursor="pointer",
                             _hover={"background": "rgba(255,255,255,0.08)"},
                         ),
-                        href="/model-insights",
+                        href="/docs",
                         text_decoration="none",
                     ),
                     spacing="4",
