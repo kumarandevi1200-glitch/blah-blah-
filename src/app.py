@@ -215,13 +215,15 @@ with st.sidebar:
 
 
 # Navigation Tabs
-tab_bot, tab_speech, tab_text, tab_profile, tab_guide = st.tabs([
+tab_bot, tab_speech, tab_text, tab_profile, tab_benchmark, tab_guide = st.tabs([
     "🤖 Cyber Shield Bot (AI Assistant)",
     "🎙️ Speech & Voice AI Scanner",
     "🔍 Text Scam Scanner",
     "👤 User Account & Profile",
+    "📊 Tricky Scenarios Benchmark (100 Cases)",
     "📚 Free AI Agents & Setup Instructions"
 ])
+
 
 # ==========================================
 # TAB 1: CYBER SHIELD BOT (AI ASSISTANT)
@@ -544,9 +546,111 @@ with tab_profile:
                         st.error(msg)
 
 # ==========================================
-# TAB 5: FREE AI AGENTS & SETUP GUIDE
+# TAB 5: TRICKY SCENARIOS BENCHMARK
+# ==========================================
+with tab_benchmark:
+    st.markdown("### 📊 Tricky Scenarios Benchmark (100 Cases)")
+    st.caption("Evaluate the performance of Cyber Fraud Shield AI Agents against the dataset of 100 tricky test scenarios (Prompt Injection, Negation, Multilingual, Gap Tests).")
+
+    # Load scenarios
+    scenarios_path = "src/model/data/tricky_test_scenarios.json"
+    if not os.path.exists(scenarios_path):
+        st.error(f"Dataset file not found at `{scenarios_path}`")
+    else:
+        with open(scenarios_path, "r", encoding="utf-8") as f:
+            scenarios = json.load(f)
+
+        # Count stats
+        total_cases = len(scenarios)
+        scam_cases = sum(1 for s in scenarios if s.get("is_scam") == 1)
+        safe_cases = sum(1 for s in scenarios if s.get("is_scam") == 0)
+
+        # Display Stats Summary
+        stat_col1, stat_col2, stat_col3 = st.columns(3)
+        with stat_col1:
+            st.markdown(f"""
+            <div class="metric-box">
+                <div class="metric-val">{total_cases}</div>
+                <div class="metric-lbl">Total Scenarios</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with stat_col2:
+            st.markdown(f"""
+            <div class="metric-box">
+                <div class="metric-val" style="color: #ef4444;">{scam_cases}</div>
+                <div class="metric-lbl">Scam Targets</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with stat_col3:
+            st.markdown(f"""
+            <div class="metric-box">
+                <div class="metric-val" style="color: #10b981;">{safe_cases}</div>
+                <div class="metric-lbl">Safe Targets</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # Interactive explorer
+        st.markdown("#### 🔍 Select Scenario to Run Live Agent Analysis")
+        categories = sorted(list(set(s.get("category", "General") for s in scenarios)))
+        selected_cat = st.selectbox("Filter by Category:", ["All"] + categories)
+
+        filtered_scenarios = [s for s in scenarios if selected_cat == "All" or s.get("category") == selected_cat]
+
+        scenario_options = [f"#{i+1}: {s.get('text')[:75]}..." for i, s in enumerate(filtered_scenarios)]
+        selected_scenario_idx = st.selectbox("Choose a scenario:", range(len(filtered_scenarios)), format_func=lambda x: scenario_options[x])
+
+        if len(filtered_scenarios) > 0:
+            target_scenario = filtered_scenarios[selected_scenario_idx]
+            st.markdown(f"""
+            <div class="glass-card">
+                <h5>Scenario Prompt:</h5>
+                <p style="font-size: 1.1rem; font-style: italic; color: #cbd5e1;">"{target_scenario.get('text')}"</p>
+                <p><b>Category:</b> {target_scenario.get('category')} | <b>Expected Threat:</b> {"⚠️ SCAM / FRAUD" if target_scenario.get('is_scam') == 1 else "✅ SAFE / NO ACTION"}</p>
+                <p><b>Expected Behavior Focus:</b> <code>{target_scenario.get('expected_behavior')}</code></p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("🚀 Run Live Scenario Evaluation", key="btn_run_benchmark", type="primary", use_container_width=True):
+                with st.spinner("Executing agent evaluation pipelines..."):
+                    text = target_scenario.get("text")
+                    analysis = orchestrator.text_agent.analyze(text)
+                    
+                    st.markdown("##### 📋 Agent Output Details")
+                    res_a, res_b = st.columns([1, 1.8])
+                    with res_a:
+                        st.metric("Threat Risk Score", f"{analysis['risk_score']} / 100")
+                        st.markdown(f"**Threat Classification:** {analysis['threat_level']}")
+                        st.markdown(f"**Scam Category:** `{analysis['scam_type']}`")
+                        st.caption(f"Engine: {analysis.get('engine_used', 'Heuristic')}")
+                    with res_b:
+                        st.markdown("**Red Flags & Tactics Detected:**")
+                        for flag in analysis.get("matched_tactics", []):
+                            st.markdown(f"- ⚠️ {flag}")
+                        
+                        st.markdown("**Key Warning Signs:**")
+                        for sign in analysis.get("key_warning_signs", []):
+                            st.markdown(f"- 🔴 {sign}")
+                    
+                    # Verify correctness
+                    is_scam_expected = target_scenario.get("is_scam") == 1
+                    is_scam_predicted = analysis["threat_level"] != "Safe"
+                    passed = is_scam_expected == is_scam_predicted
+
+                    st.markdown("---")
+                    if passed:
+                        st.success("✅ **EVALUATION PASSED** - The AI agent's prediction matches the target threat assessment.")
+                    else:
+                        st.warning("⚠️ **EVALUATION MISMATCH** - The AI agent flagged this differently from the expected baseline. Verify details below.")
+                        
+                    st.info(f"💡 **Actionable Advice:** {analysis.get('actionable_advice', '')}")
+
+# ==========================================
+# TAB 6: FREE AI AGENTS & SETUP GUIDE
 # ==========================================
 with tab_guide:
+
     st.markdown("### 📚 Free AI Keys & Agents Setup Guide")
     st.markdown("""
     This project is built to run 100% free using open-source models, free-tier AI APIs, and local fallback engines.

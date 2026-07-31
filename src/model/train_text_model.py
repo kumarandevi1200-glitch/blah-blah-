@@ -69,6 +69,19 @@ def load_all_data():
     except Exception as e:
         print(f"[Load] sms_spam_dataset.csv skipped: {e}")
 
+    # 1.5. Tricky Test Scenarios
+    try:
+        tricky_path = BASE_DIR / "data" / "tricky_test_scenarios.json"
+        if tricky_path.exists():
+            tricky_df = pd.read_json(tricky_path)
+            tricky_df = tricky_df.rename(columns={"is_scam": "label"})
+            tricky_df = tricky_df[["label", "text"]].copy()
+            datasets.append(tricky_df)
+            print(f"[Load] tricky_test_scenarios.json: {len(tricky_df)} rows")
+    except Exception as e:
+        print(f"[Load] tricky_test_scenarios.json skipped: {e}")
+
+
     training_dir = DATA_DIR if DATA_DIR.exists() else None
 
     if training_dir:
