@@ -76,7 +76,7 @@ def analysis_panel() -> rx.Component:
     Upload widget, sample test triggers, and interactive verdict report cards.
     """
     return rx.box(
-        rx.container(
+        rx.box(
             rx.vstack(
                 rx.heading(
                     "Live Voice & Content Fraud Scanner",
@@ -374,8 +374,8 @@ def analysis_panel() -> rx.Component:
                 align="start",
                 padding_y="40px",
             ),
-            max_width="100%",
-            padding_x="32px",
+            width="100%",
+            padding_x={"initial": "16px", "md": "48px"},
         ),
         background="#F7F9F8",
         border_bottom="1px solid #E2E8F0",

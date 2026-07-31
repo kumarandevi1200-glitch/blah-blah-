@@ -135,6 +135,13 @@ app = rx.App(
         "color": "#0D1B1E",
         "user_select": "none",
         "cursor": "default",
+        "html, body, #root, .radix-themes, .rt-Theme, .rt-Container": {
+            "max_width": "100% !important",
+            "width": "100% !important",
+            "margin": "0",
+            "padding": "0",
+            "box_sizing": "border-box",
+        },
         "::selection": {
             "background": "#1B6E5B",
             "color": "#FFFFFF",

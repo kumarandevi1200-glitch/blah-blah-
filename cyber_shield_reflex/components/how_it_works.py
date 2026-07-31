@@ -38,7 +38,7 @@ def how_it_works() -> rx.Component:
     How It Works 4-step pipeline component.
     """
     return rx.box(
-        rx.container(
+        rx.box(
             rx.vstack(
                 rx.vstack(
                     rx.text("PIPELINE ARCHITECTURE", font_size="11px", font_weight="700", color="#1B6E5B", font_family="'IBM Plex Mono', monospace", letter_spacing="0.1em"),
@@ -83,8 +83,8 @@ def how_it_works() -> rx.Component:
                 align="center",
                 padding_y="60px",
             ),
-            max_width="100%",
-            padding_x="32px",
+            width="100%",
+            padding_x={"initial": "16px", "md": "48px"},
         ),
         background="#FFFFFF",
         border_bottom="1px solid #E2E8F0",

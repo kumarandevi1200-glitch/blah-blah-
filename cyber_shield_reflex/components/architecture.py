@@ -37,7 +37,7 @@ def architecture() -> rx.Component:
     System Architecture & Model Transparency Component.
     """
     return rx.box(
-        rx.container(
+        rx.box(
             rx.vstack(
                 rx.vstack(
                     rx.text("TECHNICAL MODEL TRANSPARENCY", font_size="11px", font_weight="700", color="#1B6E5B", font_family="'IBM Plex Mono', monospace", letter_spacing="0.1em"),
@@ -123,8 +123,8 @@ def architecture() -> rx.Component:
                 align="center",
                 padding_y="60px",
             ),
-            max_width="100%",
-            padding_x="32px",
+            width="100%",
+            padding_x={"initial": "16px", "md": "48px"},
         ),
         background="#F7F9F8",
         border_bottom="1px solid #E2E8F0",

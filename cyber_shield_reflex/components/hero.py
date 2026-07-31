@@ -58,7 +58,7 @@ def hero() -> rx.Component:
     Hero Section Component with gradient, animated morphing waveform, CTAs, and status strip.
     """
     return rx.box(
-        rx.container(
+        rx.box(
             rx.vstack(
                 # Top Live Status Badge
                 rx.hstack(

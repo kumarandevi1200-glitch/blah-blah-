@@ -48,7 +48,7 @@ def header() -> rx.Component:
         
         # Tier 1: Utility Strip (Deep Green background)
         rx.box(
-            rx.container(
+            rx.box(
                 rx.hstack(
                     rx.hstack(
                         rx.box(
@@ -73,16 +73,17 @@ def header() -> rx.Component:
                     align="center",
                     height="32px",
                 ),
-                max_width="100%",
+                width="100%",
                 padding_x="32px",
             ),
             background="#0B3D2E",
             border_bottom="1px solid #145C46",
+            width="100%",
         ),
         
         # Tier 2: Main Navigation Bar (White background, Sticky)
         rx.box(
-            rx.container(
+            rx.box(
                 rx.hstack(
                     # Left Logo + Wordmark (Clickable Home link)
                     rx.link(
@@ -168,12 +169,13 @@ def header() -> rx.Component:
                     align="center",
                     height="76px",
                 ),
-                max_width="100%",
+                width="100%",
                 padding_x="32px",
             ),
             background="#FFFFFF",
             border_bottom="1px solid rgba(13, 27, 30, 0.08)",
             box_shadow="0 2px 8px rgba(10, 31, 46, 0.04)",
+            width="100%",
         ),
         position="sticky",
         top="0",
