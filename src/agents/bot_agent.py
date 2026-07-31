@@ -49,6 +49,7 @@ Your objective:
         return self._respond_with_knowledge_base(message, rag_results)
 
     def _respond_with_groq(self, message: str, chat_history: List[Dict[str, str]], rag_context: str) -> str:
+        # pyrefly: ignore [missing-import]
         from groq import Groq
         client = Groq(api_key=Config.GROQ_API_KEY)
         

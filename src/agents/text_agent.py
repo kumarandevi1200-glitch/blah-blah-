@@ -1,19 +1,62 @@
 import re
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Tuple
+from pathlib import Path
 from src.config import Config, SCAM_INDICATORS
+
+try:
+    import joblib
+    _HAS_JOBLIB = True
+except ImportError:
+    _HAS_JOBLIB = False
+
+ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "model" / "artifacts"
+VECTORIZER_PATH = ARTIFACTS_DIR / "tfidf_vectorizer.joblib"
+CLASSIFIER_PATH = ARTIFACTS_DIR / "fraud_classifier.joblib"
+
 
 class TextScamDetectorAgent:
     """
     AI Agent responsible for scanning text messages, emails, and call transcripts
     for cyber fraud indicators, phishing patterns, and authority impersonation.
     Supports both Free API Mode (Groq Llama-3.3-70B / Gemini) and Heuristic Engine Fallback.
+    Uses a trained ML classifier (TF-IDF + Logistic Regression) for improved detection.
     """
     
     def __init__(self):
         self.name = "Text Scam Detector Agent"
         self.role = "Cyber Fraud Content & Phishing Analyzer"
-        
+        self._vectorizer = None
+        self._classifier = None
+        self._load_ml_artifacts()
+
+    def _load_ml_artifacts(self):
+        if not _HAS_JOBLIB:
+            print("[TextAgent] joblib not installed; ML model unavailable.")
+            return
+        if not VECTORIZER_PATH.exists() or not CLASSIFIER_PATH.exists():
+            print("[TextAgent] ML model artifacts not found; using heuristics-only.")
+            return
+        try:
+            self._vectorizer = joblib.load(VECTORIZER_PATH)
+            self._classifier = joblib.load(CLASSIFIER_PATH)
+            print("[TextAgent] ML model artifacts loaded successfully.")
+        except Exception as e:
+            print(f"[TextAgent] Failed to load ML artifacts: {e}")
+            self._vectorizer = None
+            self._classifier = None
+
+    def _predict_ml_spam_probability(self, text: str) -> Optional[float]:
+        if self._vectorizer is None or self._classifier is None:
+            return None
+        try:
+            vec = self._vectorizer.transform([text])
+            proba = self._classifier.predict_proba(vec)[0]
+            return float(proba[1])
+        except Exception as e:
+            print(f"[TextAgent] ML prediction failed: {e}")
+            return None
+
     def analyze(self, text: str) -> Dict[str, Any]:
         if not text or not text.strip():
             return {
@@ -31,7 +74,6 @@ class TextScamDetectorAgent:
             try:
                 return self._analyze_with_groq(text)
             except Exception as e:
-                # Fallback to local heuristic engine on API failure
                 print(f"[TextAgent] Groq API call failed: {e}. Falling back to Heuristic Engine.")
 
         # Fallback to Heuristic Engine
@@ -77,30 +119,49 @@ Return ONLY a valid JSON object with the following fields:
     def _analyze_with_heuristics(self, text: str) -> Dict[str, Any]:
         text_lower = text.lower()
         matched_indicators: List[str] = []
+
+        # --- Heuristic scoring ---
         score = 0
-        
-        # Check categories
         for category, keywords in SCAM_INDICATORS.items():
             found = [kw for kw in keywords if kw in text_lower]
             if found:
                 matched_indicators.append(f"{category.replace('_', ' ').title()}: matched '{', '.join(found[:3])}'")
                 score += len(found) * 18
 
-        # URL check
         urls = re.findall(r'https?://\S+|www\.\S+', text_lower)
         if urls:
             matched_indicators.append(f"Contains Links: {len(urls)} web link(s) detected")
             score += 25
-            
-        # Urgency + Money combo
+
         if any(w in text_lower for w in SCAM_INDICATORS["urgency"]) and any(w in text_lower for w in SCAM_INDICATORS["financial"]):
             score += 20
             matched_indicators.append("High Threat Combo: Artificial Urgency + Financial Demands")
 
-        # Clamp risk score
-        risk_score = min(100, max(5, score))
+        heuristic_score = min(100, max(5, score))
 
-        # Threat classification
+        # --- Exception: legitimate OTP notification ---
+        is_legit_otp = False
+        if "otp" in text_lower and ("do not share" in text_lower or "do not disclose" in text_lower or "do not forward" in text_lower):
+            is_legit_otp = True
+            matched_indicators.append("Legit OTP Note: message warns not to share OTP (safe pattern)")
+
+        # --- ML blending ---
+        ml_prob = self._predict_ml_spam_probability(text)
+        ml_score = (ml_prob * 100) if ml_prob is not None else None
+
+        if ml_score is not None:
+            if is_legit_otp:
+                blended = round(0.2 * ml_score + 0.8 * min(heuristic_score, 20))
+            else:
+                blended = round(0.7 * ml_score + 0.3 * heuristic_score)
+            risk_score = min(100, max(0, blended))
+            matched_indicators.append(f"ML Model: spam probability {ml_score:.1f}%")
+        else:
+            risk_score = heuristic_score
+            if is_legit_otp:
+                risk_score = min(risk_score, 20)
+
+        # --- Threat classification ---
         if risk_score < 25:
             threat_level = "Safe"
             scam_type = "Legitimate / Clean"
@@ -114,7 +175,6 @@ Return ONLY a valid JSON object with the following fields:
             threat_level = "Critical Threat"
             scam_type = "High-Risk Cyber Scam"
 
-        # Determine scam type guess
         if "bank" in text_lower or "otp" in text_lower or "card" in text_lower:
             scam_type = "Bank / Financial Impersonation"
         elif "fedex" in text_lower or "dhl" in text_lower or "customs" in text_lower or "package" in text_lower:
@@ -134,6 +194,8 @@ Return ONLY a valid JSON object with the following fields:
         if not warning_signs:
             warning_signs.append("No obvious threat patterns detected in standard rule checks.")
 
+        engine_tag = "Heuristic + ML Ensemble" if ml_score is not None else "Built-in Heuristic Fraud Engine (Simulation Fallback)"
+
         return {
             "risk_score": risk_score,
             "threat_level": threat_level,
@@ -142,5 +204,5 @@ Return ONLY a valid JSON object with the following fields:
             "summary": f"Text parsed with a risk rating of {risk_score}/100. Threat Classification: {threat_level}.",
             "key_warning_signs": warning_signs,
             "actionable_advice": "Do not click links or share OTPs. Verify caller/sender through official phone numbers listed on legitimate websites.",
-            "engine_used": "Built-in Heuristic Fraud Engine (Simulation Fallback)"
+            "engine_used": engine_tag
         }

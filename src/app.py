@@ -1,5 +1,8 @@
-import streamlit as st
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import streamlit as st
 import json
 import time
 
@@ -134,6 +137,7 @@ st.markdown("""
 # Imports after page config
 from src.config import Config, EMERGENCY_PLAYBOOKS
 from src.agents.orchestrator import FreeAgentOrchestrator
+from src.database.db_manager import DatabaseManager
 
 # Initialize Orchestrator in session state (re-initialize if RAG engine added)
 if "orchestrator" not in st.session_state or not hasattr(st.session_state.orchestrator.bot_agent, "rag_engine"):
@@ -142,7 +146,14 @@ if "orchestrator" not in st.session_state or not hasattr(st.session_state.orches
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+if "db" not in st.session_state:
+    st.session_state.db = DatabaseManager()
+
+if "user" not in st.session_state:
+    st.session_state.user = None
+
 orchestrator = st.session_state.orchestrator
+db = st.session_state.db
 
 # Header Banner
 st.markdown("""
@@ -156,6 +167,18 @@ st.markdown("""
 with st.sidebar:
     st.image("https://img.icons8.com/isometric/96/shield.png", width=70)
     st.title("System Status")
+    
+    # Account status in sidebar
+    if st.session_state.user:
+        u = st.session_state.user
+        st.markdown(f"👤 **Logged in as:** `{u['username']}`")
+        if st.button("🔒 Logout", key="sidebar_logout", use_container_width=True):
+            st.session_state.user = None
+            st.rerun()
+    else:
+        st.caption("🔒 Guest Mode (Log in under 'User Account' tab)")
+
+    st.markdown("---")
     
     active_mode = Config.active_mode()
     if "Free API" in active_mode:
@@ -179,12 +202,15 @@ with st.sidebar:
 
 
 # Navigation Tabs
-tab_bot, tab_speech, tab_text, tab_guide = st.tabs([
+tab_bot, tab_speech, tab_text, tab_profile, tab_benchmark, tab_guide = st.tabs([
     "🤖 Cyber Shield Bot (AI Assistant)",
     "🎙️ Speech & Voice AI Scanner",
     "🔍 Text Scam Scanner",
+    "👤 User Account & Profile",
+    "📊 Tricky Scenarios Benchmark (100 Cases)",
     "📚 Free AI Agents & Setup Instructions"
 ])
+
 
 # ==========================================
 # TAB 1: CYBER SHIELD BOT (AI ASSISTANT)
@@ -306,11 +332,47 @@ with tab_speech:
                     """, unsafe_allow_html=True)
 
                 st.markdown("#### 📝 Speech-to-Text Transcription")
-                st.code(result["transcription"], language="text")
-                st.caption(f"Engine: {result['transcription_engine']}")
+                st.info(f"\"{result['transcription']}\"")
+                st.caption(f"🎙️ STT Engine: `{result['transcription_engine']}`")
 
-                st.markdown("#### 🔬 Acoustic Voice Artifact Inspection")
-                st.json(result["voice_spoof_metrics"])
+                st.markdown("---")
+                st.markdown("### 🔬 Executive Voice Forensics & Forensic Report")
+
+                col_f1, col_f2 = st.columns(2)
+
+                with col_f1:
+                    st.markdown("""
+                    <div class="glass-card">
+                        <h4 style="margin-top:0; color:#38bdf8;">🎙️ Acoustic & Spectral Analysis</h4>
+                    """, unsafe_allow_html=True)
+                    
+                    spoof_m = result['voice_spoof_metrics']
+                    st.markdown(f"**Voice Signature:** `{spoof_m.get('voice_nature', 'N/A')}`")
+                    st.markdown(f"**Pitch Micro-Stability:** `{spoof_m.get('pitch_stability', 'N/A')}`")
+                    st.markdown(f"**Spectral Flatness Index:** `{spoof_m.get('spectral_flatness', 0.0)}`")
+                    st.caption(f"Detector Engine: `{result.get('voice_spoof_engine', 'Acoustic Evaluator')}`")
+                    
+                    st.markdown("**Detected Acoustic Artifacts:**")
+                    for artifact in spoof_m.get("artifacts_detected", []):
+                        icon = "⚠️" if spoof_m.get("is_synthetic") else "✅"
+                        st.markdown(f"- {icon} {artifact}")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                with col_f2:
+                    content_eval = result.get("content_analysis", {})
+                    st.markdown("""
+                    <div class="glass-card">
+                        <h4 style="margin-top:0; color:#818cf8;">🔍 Spoken Content Threat Evaluation</h4>
+                    """, unsafe_allow_html=True)
+                    st.markdown(f"**Fraud Category:** `{content_eval.get('scam_type', 'N/A')}`")
+                    st.markdown(f"**Threat Classification:** `{content_eval.get('threat_level', 'Caution')}`")
+                    
+                    st.markdown("**Matched Scam Cues:**")
+                    for tactic in content_eval.get("matched_tactics", []):
+                        st.markdown(f"- 🚩 {tactic}")
+                    
+                    st.markdown(f"💡 **Actionable Advice:** {content_eval.get('actionable_advice', 'Verify caller identity before acting.')}")
+                    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # TAB 3: TEXT SCAM SCANNER
@@ -361,9 +423,217 @@ with tab_text:
                 st.info(f"💡 **Actionable Advice:** {analysis.get('actionable_advice', '')}")
 
 # ==========================================
-# TAB 4: FREE AI AGENTS & SETUP GUIDE
+# TAB 4: USER ACCOUNT & PERSONAL PROFILE
+# ==========================================
+with tab_profile:
+    st.markdown("### 👤 User Account & Personal Details")
+    
+    if st.session_state.user is None:
+        st.caption("Log in to your account or register a new profile to personalize your security assistant.")
+        
+        login_tab, register_tab = st.tabs(["🔑 Login", "📝 Register New Account"])
+        
+        with login_tab:
+            st.markdown("#### Login to Cyber Shield")
+            login_user = st.text_input("Username or Email", key="login_user_input")
+            login_pass = st.text_input("Password", type="password", key="login_pass_input")
+            
+            if st.button("🔑 Log In", type="primary", use_container_width=True):
+                user_data, msg = db.authenticate_user(login_user, login_pass)
+                if user_data:
+                    st.session_state.user = user_data
+                    st.success(f"Welcome back, {user_data['full_name']}!")
+                    st.rerun()
+                else:
+                    st.error(msg)
+                    
+        with register_tab:
+            st.markdown("#### Create New User Profile")
+            with st.form("register_form"):
+                col_r1, col_r2 = st.columns(2)
+                with col_r1:
+                    reg_username = st.text_input("Username *", placeholder="johndoe")
+                    reg_email = st.text_input("Email Address *", placeholder="john@example.com")
+                    reg_password = st.text_input("Password *", type="password")
+                    reg_fullname = st.text_input("Full Name *", placeholder="John Doe")
+                with col_r2:
+                    reg_age = st.number_input("Age *", min_value=18, max_value=120, value=25)
+                    reg_mobile = st.text_input("Mobile Number *", placeholder="+91 9876543210")
+                    reg_address = st.text_area("Residential Address", placeholder="Street, City, State, Pincode", height=100)
+                
+                submitted = st.form_submit_button("📝 Register Account", use_container_width=True)
+                if submitted:
+                    success, msg = db.register_user(
+                        username=reg_username,
+                        email=reg_email,
+                        password=reg_password,
+                        full_name=reg_fullname,
+                        age=reg_age,
+                        mobile_number=reg_mobile,
+                        address=reg_address
+                    )
+                    if success:
+                        st.success(msg)
+                    else:
+                        st.error(msg)
+    else:
+        u = st.session_state.user
+        st.markdown(f"#### 🛡️ Welcome, **{u['full_name']}** (`@{u['username']}`)")
+        
+        col_p1, col_p2 = st.columns([1.2, 1])
+        
+        with col_p1:
+            st.markdown("""
+            <div class="glass-card">
+                <h4 style="margin-top:0; color:#38bdf8;">📋 Saved Personal Profile Details</h4>
+            """, unsafe_allow_html=True)
+            st.markdown(f"**Full Name:** `{u.get('full_name')}`")
+            st.markdown(f"**Username:** `@{u.get('username')}`")
+            st.markdown(f"**Email:** `{u.get('email')}`")
+            st.markdown(f"**Age:** `{u.get('age')}` years old")
+            st.markdown(f"**Mobile Number:** `{u.get('mobile_number')}`")
+            st.markdown(f"**Address:** `{u.get('address') or 'Not provided'}`")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            if st.button("🔒 Log Out of Account", type="secondary", use_container_width=True):
+                st.session_state.user = None
+                st.rerun()
+
+        with col_p2:
+            st.markdown("#### ✏️ Edit Profile Information")
+            with st.form("edit_profile_form"):
+                edit_name = st.text_input("Full Name", value=u.get('full_name', ''))
+                edit_age = st.number_input("Age", min_value=18, max_value=120, value=int(u.get('age') or 25))
+                edit_mobile = st.text_input("Mobile Number", value=u.get('mobile_number', ''))
+                edit_address = st.text_area("Residential Address", value=u.get('address', ''), height=100)
+                
+                saved = st.form_submit_button("💾 Save Profile Changes", use_container_width=True)
+                if saved:
+                    ok, msg = db.update_user_profile(
+                        user_id=u['user_id'],
+                        full_name=edit_name,
+                        age=edit_age,
+                        mobile_number=edit_mobile,
+                        address=edit_address
+                    )
+                    if ok:
+                        updated_profile = db.get_user_profile(u['user_id'])
+                        if updated_profile:
+                            st.session_state.user['full_name'] = updated_profile['full_name']
+                            st.session_state.user['age'] = updated_profile['age']
+                            st.session_state.user['mobile_number'] = updated_profile['mobile_number']
+                            st.session_state.user['address'] = updated_profile['address']
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+
+# ==========================================
+# TAB 5: TRICKY SCENARIOS BENCHMARK
+# ==========================================
+with tab_benchmark:
+    st.markdown("### 📊 Tricky Scenarios Benchmark (100 Cases)")
+    st.caption("Evaluate the performance of Cyber Fraud Shield AI Agents against the dataset of 100 tricky test scenarios (Prompt Injection, Negation, Multilingual, Gap Tests).")
+
+    # Load scenarios
+    scenarios_path = "src/model/data/tricky_test_scenarios.json"
+    if not os.path.exists(scenarios_path):
+        st.error(f"Dataset file not found at `{scenarios_path}`")
+    else:
+        with open(scenarios_path, "r", encoding="utf-8") as f:
+            scenarios = json.load(f)
+
+        # Count stats
+        total_cases = len(scenarios)
+        scam_cases = sum(1 for s in scenarios if s.get("is_scam") == 1)
+        safe_cases = sum(1 for s in scenarios if s.get("is_scam") == 0)
+
+        # Display Stats Summary
+        stat_col1, stat_col2, stat_col3 = st.columns(3)
+        with stat_col1:
+            st.markdown(f"""
+            <div class="metric-box">
+                <div class="metric-val">{total_cases}</div>
+                <div class="metric-lbl">Total Scenarios</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with stat_col2:
+            st.markdown(f"""
+            <div class="metric-box">
+                <div class="metric-val" style="color: #ef4444;">{scam_cases}</div>
+                <div class="metric-lbl">Scam Targets</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with stat_col3:
+            st.markdown(f"""
+            <div class="metric-box">
+                <div class="metric-val" style="color: #10b981;">{safe_cases}</div>
+                <div class="metric-lbl">Safe Targets</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # Interactive explorer
+        st.markdown("#### 🔍 Select Scenario to Run Live Agent Analysis")
+        categories = sorted(list(set(s.get("category", "General") for s in scenarios)))
+        selected_cat = st.selectbox("Filter by Category:", ["All"] + categories)
+
+        filtered_scenarios = [s for s in scenarios if selected_cat == "All" or s.get("category") == selected_cat]
+
+        scenario_options = [f"#{i+1}: {s.get('text')[:75]}..." for i, s in enumerate(filtered_scenarios)]
+        selected_scenario_idx = st.selectbox("Choose a scenario:", range(len(filtered_scenarios)), format_func=lambda x: scenario_options[x])
+
+        if len(filtered_scenarios) > 0:
+            target_scenario = filtered_scenarios[selected_scenario_idx]
+            st.markdown(f"""
+            <div class="glass-card">
+                <h5>Scenario Prompt:</h5>
+                <p style="font-size: 1.1rem; font-style: italic; color: #cbd5e1;">"{target_scenario.get('text')}"</p>
+                <p><b>Category:</b> {target_scenario.get('category')} | <b>Expected Threat:</b> {"⚠️ SCAM / FRAUD" if target_scenario.get('is_scam') == 1 else "✅ SAFE / NO ACTION"}</p>
+                <p><b>Expected Behavior Focus:</b> <code>{target_scenario.get('expected_behavior')}</code></p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("🚀 Run Live Scenario Evaluation", key="btn_run_benchmark", type="primary", use_container_width=True):
+                with st.spinner("Executing agent evaluation pipelines..."):
+                    text = target_scenario.get("text")
+                    analysis = orchestrator.text_agent.analyze(text)
+                    
+                    st.markdown("##### 📋 Agent Output Details")
+                    res_a, res_b = st.columns([1, 1.8])
+                    with res_a:
+                        st.metric("Threat Risk Score", f"{analysis['risk_score']} / 100")
+                        st.markdown(f"**Threat Classification:** {analysis['threat_level']}")
+                        st.markdown(f"**Scam Category:** `{analysis['scam_type']}`")
+                        st.caption(f"Engine: {analysis.get('engine_used', 'Heuristic')}")
+                    with res_b:
+                        st.markdown("**Red Flags & Tactics Detected:**")
+                        for flag in analysis.get("matched_tactics", []):
+                            st.markdown(f"- ⚠️ {flag}")
+                        
+                        st.markdown("**Key Warning Signs:**")
+                        for sign in analysis.get("key_warning_signs", []):
+                            st.markdown(f"- 🔴 {sign}")
+                    
+                    # Verify correctness
+                    is_scam_expected = target_scenario.get("is_scam") == 1
+                    is_scam_predicted = analysis["threat_level"] != "Safe"
+                    passed = is_scam_expected == is_scam_predicted
+
+                    st.markdown("---")
+                    if passed:
+                        st.success("✅ **EVALUATION PASSED** - The AI agent's prediction matches the target threat assessment.")
+                    else:
+                        st.warning("⚠️ **EVALUATION MISMATCH** - The AI agent flagged this differently from the expected baseline. Verify details below.")
+                        
+                    st.info(f"💡 **Actionable Advice:** {analysis.get('actionable_advice', '')}")
+
+# ==========================================
+# TAB 6: FREE AI AGENTS & SETUP GUIDE
 # ==========================================
 with tab_guide:
+
     st.markdown("### 📚 Free AI Keys & Agents Setup Guide")
     st.markdown("""
     This project is built to run 100% free using open-source models, free-tier AI APIs, and local fallback engines.
