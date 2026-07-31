@@ -23,9 +23,13 @@ class TextScamDetectorAgent:
     Uses a trained ML classifier (TF-IDF + Logistic Regression) for improved detection.
     """
     
-    def __init__(self):
+    def __init__(self, db_manager=None):
         self.name = "Text Scam Detector Agent"
         self.role = "Cyber Fraud Content & Phishing Analyzer"
+        if db_manager is None:
+            from src.database.db_manager import DatabaseManager
+            db_manager = DatabaseManager()
+        self.db = db_manager
         self._vectorizer = None
         self._classifier = None
         self._load_ml_artifacts()
@@ -57,7 +61,7 @@ class TextScamDetectorAgent:
             print(f"[TextAgent] ML prediction failed: {e}")
             return None
 
-    def analyze(self, text: str) -> Dict[str, Any]:
+    def analyze(self, text: str, idempotency_key: str = None) -> Dict[str, Any]:
         if not text or not text.strip():
             return {
                 "error": "Empty input provided",
@@ -66,21 +70,49 @@ class TextScamDetectorAgent:
                 "scam_type": "None",
                 "indicators": [],
                 "explanation": "No text content was submitted for evaluation.",
-                "recommendation": "Paste suspect text to run cyber fraud analysis."
+                "recommendation": "Paste suspect text to run cyber fraud analysis.",
+                "idempotent_hit": False
             }
 
+        # Step 1: Idempotency Key Check
+        if not idempotency_key:
+            idempotency_key = self.db.generate_idempotency_key(text.strip().lower(), prefix="text_scan")
+
+        cached_res = self.db.get_idempotent_record(idempotency_key, scope="text_scan")
+        if cached_res:
+            return cached_res
+
+        # Step 2: Perform analysis
+        result = None
         # Try Groq Free API first if key exists
         if Config.is_groq_available():
             try:
-                return self._analyze_with_groq(text)
+                result = self._analyze_with_groq(text)
             except Exception as e:
                 print(f"[TextAgent] Groq API call failed: {e}. Falling back to Heuristic Engine.")
 
-        # Fallback to Heuristic Engine
-        return self._analyze_with_heuristics(text)
+        if result is None:
+            result = self._analyze_with_heuristics(text)
+
+        result["idempotent_hit"] = False
+        result["idempotency_key"] = idempotency_key
+
+        # Step 3: Save result to idempotency database table
+        self.db.save_idempotent_record(
+            idempotency_key=idempotency_key,
+            request_hash=idempotency_key.split(":")[-1],
+            scope="text_scan",
+            response_data=result
+        )
+
+        return result
 
     def _analyze_with_groq(self, text: str) -> Dict[str, Any]:
-        from groq import Groq
+        try:
+            from groq import Groq
+        except ImportError:
+            raise RuntimeError("The 'groq' package is not installed.")
+
         client = Groq(api_key=Config.GROQ_API_KEY)
         
         prompt = f"""

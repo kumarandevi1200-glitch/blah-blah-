@@ -139,27 +139,28 @@ from src.config import Config, EMERGENCY_PLAYBOOKS
 from src.agents.orchestrator import FreeAgentOrchestrator
 from src.database.db_manager import DatabaseManager
 
-# Initialize Orchestrator in session state (re-initialize if RAG engine added)
+# Initialize Database & Orchestrator in session state
+if "db" not in st.session_state:
+    st.session_state.db = DatabaseManager()
+
+db = st.session_state.db
+
 if "orchestrator" not in st.session_state or not hasattr(st.session_state.orchestrator.bot_agent, "rag_engine"):
-    st.session_state.orchestrator = FreeAgentOrchestrator()
+    st.session_state.orchestrator = FreeAgentOrchestrator(db_manager=db)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
-if "db" not in st.session_state:
-    st.session_state.db = DatabaseManager()
 
 if "user" not in st.session_state:
     st.session_state.user = None
 
 orchestrator = st.session_state.orchestrator
-db = st.session_state.db
 
 # Header Banner
 st.markdown("""
 <div class="cyber-header">
     <div class="cyber-title">🛡️ Cyber Fraud Shield AI Assistant</div>
-    <div class="cyber-subtitle">Multi-Agent AI Defense Platform • Voice & Text Scam Detection • Cyber Security Emergency Bot</div>
+    <div class="cyber-subtitle">Multi-Agent AI Defense Platform • Voice & Text Scam Detection • End-to-End Data Idempotency</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -195,6 +196,18 @@ with st.sidebar:
     
     rag_count = len(orchestrator.bot_agent.rag_engine.documents) if hasattr(orchestrator.bot_agent, "rag_engine") else 6
     st.markdown(f"**4. Cyber RAG Engine:** ✅ Active ({rag_count} Playbooks)")
+
+    st.markdown("---")
+    st.subheader("⚡ Data Idempotency Cache")
+    idempotency_stats = db.get_idempotency_stats()
+    st.markdown(f"**Cached Records:** `{idempotency_stats['total_records']}` entries")
+    if st.button("🗑️ Clear Idempotency Cache", use_container_width=True):
+        ok, msg = db.clear_idempotency_cache()
+        if ok:
+            st.success(msg)
+            st.rerun()
+        else:
+            st.error(msg)
     
     st.markdown("---")
     st.markdown("### 🚨 Emergency Hotlines")
@@ -304,6 +317,8 @@ with tab_speech:
                 result = orchestrator.speech_agent.analyze_audio(audio_bytes, fname)
                 
                 st.markdown("---")
+                if result.get("idempotent_hit"):
+                    st.success("⚡ **Idempotent Cache Hit:** Serving pre-computed, verified audio analysis result instantly without re-processing!")
                 st.markdown("### 📊 Voice Analysis Results")
                 
                 res_col1, res_col2, res_col3 = st.columns(3)
@@ -401,6 +416,8 @@ with tab_text:
                 analysis = orchestrator.text_agent.analyze(input_text)
 
                 st.markdown("---")
+                if analysis.get("idempotent_hit"):
+                    st.success("⚡ **Idempotent Cache Hit:** Serving pre-computed, verified text scam report instantly without re-processing!")
                 st.markdown("### 📋 Scam Analysis Report")
 
                 col_a, col_b = st.columns([1, 1.8])

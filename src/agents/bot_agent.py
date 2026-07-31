@@ -10,10 +10,14 @@ class CyberShieldBotAgent:
     actionable security instructions, emergency checklists, and official helpline citations.
     """
     
-    def __init__(self):
+    def __init__(self, db_manager=None):
         self.name = "Cyber Shield Bot"
         self.role = "Cyber Security & Fraud Emergency Advisor (RAG-Powered)"
         self.rag_engine = CyberKnowledgeRAGEngine()
+        if db_manager is None:
+            from src.database.db_manager import DatabaseManager
+            db_manager = DatabaseManager()
+        self.db = db_manager
         self.system_prompt = """
 You are Cyber Shield Bot, an empathetic, highly knowledgeable, and authoritative Cyber Security & Fraud Emergency AI Advisor.
 Your objective:
@@ -27,30 +31,54 @@ Your objective:
 4. Maintain a reassuring, calm, and security-focused tone.
 """
 
-    def respond(self, message: str, chat_history: List[Dict[str, str]] = None) -> str:
+    def respond(self, message: str, chat_history: List[Dict[str, str]] = None, idempotency_key: str = None) -> str:
         if not message or not message.strip():
             return "Hello! I am **Cyber Shield Bot** (RAG-Powered Security Advisor). How can I help protect you or investigate a cyber threat today?"
 
         if chat_history is None:
             chat_history = []
 
+        # Step 0: Check Idempotency Cache
+        if not idempotency_key:
+            payload_str = f"{message.strip().lower()}_ctx:{json.dumps(chat_history[-2:] if chat_history else [])}"
+            idempotency_key = self.db.generate_idempotency_key(payload_str, prefix="bot_response")
+
+        cached_rec = self.db.get_idempotent_record(idempotency_key, scope="bot_response")
+        if cached_rec and "response_text" in cached_rec:
+            prefix_badge = "⚡ *(Idempotent Cached Advice)*\n\n" if not cached_rec["response_text"].startswith("⚡") else ""
+            return f"{prefix_badge}{cached_rec['response_text']}"
+
         # Retrieve top relevant cybersecurity playbooks via RAG semantic search
         rag_results = self.rag_engine.search(message, top_k=2)
         rag_context = self.rag_engine.format_rag_context(rag_results)
 
         # Try Groq Free API first if available
+        bot_reply = None
         if Config.is_groq_available():
             try:
-                return self._respond_with_groq(message, chat_history, rag_context)
+                bot_reply = self._respond_with_groq(message, chat_history, rag_context)
             except Exception as e:
                 print(f"[BotAgent] Groq API call failed: {e}. Using RAG Knowledge Base fallback engine.")
 
-        # Fallback RAG Knowledge Base Response (Offline Mode)
-        return self._respond_with_knowledge_base(message, rag_results)
+        if not bot_reply:
+            bot_reply = self._respond_with_knowledge_base(message, rag_results)
+
+        # Cache generated response
+        self.db.save_idempotent_record(
+            idempotency_key=idempotency_key,
+            request_hash=idempotency_key.split(":")[-1],
+            scope="bot_response",
+            response_data={"response_text": bot_reply}
+        )
+
+        return bot_reply
 
     def _respond_with_groq(self, message: str, chat_history: List[Dict[str, str]], rag_context: str) -> str:
-        # pyrefly: ignore [missing-import]
-        from groq import Groq
+        try:
+            from groq import Groq
+        except ImportError:
+            raise RuntimeError("The 'groq' package is not installed.")
+
         client = Groq(api_key=Config.GROQ_API_KEY)
         
         system_with_rag = (
