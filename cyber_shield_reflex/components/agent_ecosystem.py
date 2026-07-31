@@ -94,7 +94,7 @@ def agent_card(
             rx.vstack(
                 *[
                     rx.hstack(
-                        rx.icon("check-circle-2", size=15, color=accent_color),
+                        rx.icon("circle-check", size=15, color=accent_color),
                         rx.text(
                             cap,
                             font_size="12px",
@@ -234,7 +234,7 @@ def agent_ecosystem() -> rx.Component:
                             "Idempotent hash caching for instant responses",
                             "Incident deduplication & suspect fraud history",
                         ],
-                        "shield-search",
+                        "shield-alert",
                         accent_color="#F59E0B",
                         badge_color="rgba(245, 158, 11, 0.08)",
                     ),

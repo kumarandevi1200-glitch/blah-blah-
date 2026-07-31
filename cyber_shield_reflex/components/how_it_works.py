@@ -115,7 +115,7 @@ def how_it_works() -> rx.Component:
                         "1",
                         "Multi-Modal Ingestion",
                         "Accepts call audio files (.mp3, .wav), SMS phishing text clips, or suspect UPI IDs and mobile numbers into the execution queue.",
-                        "upload-cloud",
+                        "cloud-upload",
                         color_accent="#0088FF",
                     ),
                     step_card(

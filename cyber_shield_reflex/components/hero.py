@@ -1,247 +1,188 @@
 import reflex as rx
 
 
-def hero_defense_hub():
+def saas_terminal_mockup():
     """
-    Signature Multi-Pillar Cyber Defense HUD Component.
-    Visually showcases all 3 core capabilities of the platform:
-    1. Voice Deepfake Spectral Scanner
-    2. Text & SMS Phishing RAG Engine
-    3. Suspect Intelligence & Threat Registry
+    Signature Next.js SaaS Starter Animated Terminal Element.
+    Renders a dark developer-grade terminal with macOS traffic control dots
+    and real-time animated command logs.
     """
     return rx.html(
         """
-        <div style="width: 100%; max-width: 980px; margin: 0 auto; text-align: center;">
+        <div style="width: 100%; max-width: 820px; margin: 32px auto 0 auto; text-align: left;">
             <style>
-                @keyframes waveMorph {
-                    0% {
-                        d: path("M 10 30 Q 50 5, 90 30 T 170 30 T 250 30");
-                        stroke: #38BDF8;
-                        filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
-                    }
-                    50% {
-                        d: path("M 10 30 Q 30 2, 60 55 T 130 5 T 250 30");
-                        stroke: #EF4444;
-                        filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8));
-                    }
-                    100% {
-                        d: path("M 10 30 Q 50 5, 90 30 T 170 30 T 250 30");
-                        stroke: #38BDF8;
-                        filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
-                    }
+                @keyframes cursorBlink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0; }
                 }
-                .hero-wave-path {
-                    animation: waveMorph 4s ease-in-out infinite;
+                .term-cursor {
+                    animation: cursorBlink 1s infinite;
+                    display: inline-block;
+                    width: 8px;
+                    height: 14px;
+                    background: #38BDF8;
+                    vertical-align: middle;
+                    margin-left: 4px;
                 }
                 
-                @keyframes pulseScan {
-                    0% { opacity: 0.3; transform: scaleX(0.95); }
-                    50% { opacity: 1; transform: scaleX(1.02); }
-                    100% { opacity: 0.3; transform: scaleX(0.95); }
+                @keyframes lineFade {
+                    0% { opacity: 0; transform: translateY(4px); }
+                    100% { opacity: 1; transform: translateY(0); }
                 }
-                .scan-bar-pulse {
-                    animation: pulseScan 3s ease-in-out infinite;
+                .term-line {
+                    animation: lineFade 0.4s ease-out forwards;
                 }
-
-                @keyframes radarPing {
-                    0% { r: 4px; opacity: 1; }
-                    100% { r: 24px; opacity: 0; }
-                }
-                .radar-ring {
-                    animation: radarPing 2.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-                }
-
-                .pillar-card {
-                    transition: all 0.3s ease;
-                }
-                .pillar-card:hover {
-                    transform: translateY(-4px);
-                    border-color: rgba(56, 189, 248, 0.5) !important;
-                    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+                
+                .terminal-card {
+                    background: #0B1726;
+                    border: 1px solid rgba(56, 189, 248, 0.2);
+                    border-radius: 12px;
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(27, 110, 91, 0.15);
+                    overflow: hidden;
+                    font-family: 'IBM Plex Mono', monospace;
                 }
             </style>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 12px; max-width: 100%; box-sizing: border-box;">
-                
-                <!-- Pillar 1: Voice Deepfake Scanner -->
-                <div class="pillar-card" style="background: rgba(10, 31, 46, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 20px; text-align: left; position: relative; overflow: hidden; backdrop-filter: blur(10px);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #F0F4F3;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                            Voice Deepfake AI
-                        </span>
-                        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38BDF8; padding: 3px 8px; border-radius: 12px; font-weight: 600;">ACTIVE SCAN</span>
+            <div class="terminal-card">
+                <!-- Terminal Window Header Bar -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #070F1A; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F56; display: inline-block;"></span>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FFBD2E; display: inline-block;"></span>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #27C93F; display: inline-block;"></span>
+                    </div>
+                    <span style="font-size: 12px; color: rgba(240, 244, 243, 0.6); font-weight: 600;">bash — cyber-shield multi-agent</span>
+                    <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38BDF8; padding: 2px 8px; border-radius: 4px; font-weight: 600;">v2.4 REALTIME</span>
+                </div>
+
+                <!-- Terminal Command Logs Body -->
+                <div style="padding: 20px; font-size: 13px; line-height: 1.7; color: #E2E8F0;">
+                    <div class="term-line" style="color: #94A3B8;">
+                        <span style="color: #38BDF8;">$</span> cyber-shield scan --audio voice_call.wav --target +9198765XXXXX
                     </div>
                     
-                    <svg width="100%" height="45" viewBox="0 0 260 50" fill="none">
-                        <line x1="0" y1="30" x2="260" y2="30" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4 4"/>
-                        <path class="hero-wave-path" d="M 10 30 Q 50 5, 90 30 T 170 30 T 250 30" fill="none" stroke-width="3" stroke-linecap="round"/>
-                    </svg>
+                    <div class="term-line" style="color: #64748B; margin-top: 6px;">
+                        [0.00s] Initializing Multi-Agent Consensus Pipeline...
+                    </div>
 
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: rgba(240, 244, 243, 0.7); margin-top: 8px; display: flex; justify-content: space-between;">
-                        <span>HF Speach-Agent</span>
-                        <span style="color: #10B981; font-weight: 600;">99.2% Accuracy</span>
+                    <div class="term-line" style="color: #38BDF8; margin-top: 6px;">
+                        <span style="color: #10B981;">✔</span> [SPEECH-AGENT]: Mitran14 Classifier -> <span style="color: #EF4444; font-weight: 700;">99.2% Synthetic Voice Spoof</span>
+                    </div>
+
+                    <div class="term-line" style="color: #38BDF8; margin-top: 4px;">
+                        <span style="color: #10B981;">✔</span> [TEXT-AGENT]: Llama 3.3 RAG -> <span style="color: #F59E0B; font-weight: 700;">Urgency Tactics Matched (Phishing URL)</span>
+                    </div>
+
+                    <div class="term-line" style="color: #38BDF8; margin-top: 4px;">
+                        <span style="color: #10B981;">✔</span> [SUSPECT-DB]: SQLite Idempotent Engine -> <span style="color: #EF4444; font-weight: 700;">UPI Flagged (Risk Score: 92/100)</span>
+                    </div>
+
+                    <div class="term-line" style="background: rgba(239, 68, 68, 0.12); border-left: 3px solid #EF4444; padding: 8px 12px; margin-top: 10px; border-radius: 4px;">
+                        <span style="color: #EF4444; font-weight: 700;">VERDICT: SPOOFED FRAUD CALL DETECTED</span>
+                        <span style="color: #94A3B8; font-size: 11px; display: block; margin-top: 2px;">Latency: 1.4s | Multi-Agent Consensus: High Confidence</span>
+                    </div>
+
+                    <div style="margin-top: 8px; color: #94A3B8;">
+                        <span style="color: #38BDF8;">$</span> <span style="color: #F0F4F3;">ready for next inspection</span><span class="term-cursor"></span>
                     </div>
                 </div>
-
-                <!-- Pillar 2: SMS & Text Phishing RAG -->
-                <div class="pillar-card" style="background: rgba(10, 31, 46, 0.75); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 20px; text-align: left; position: relative; overflow: hidden; backdrop-filter: blur(10px);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #F0F4F3;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            Text Phishing RAG
-                        </span>
-                        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 3px 8px; border-radius: 12px; font-weight: 600;">LLAMA 3.3 RAG</span>
-                    </div>
-                    
-                    <div class="scan-bar-pulse" style="background: rgba(16, 185, 129, 0.1); border: 1px border-box rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #A7F3D0; margin: 4px 0 10px 0; height: 42px; display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        ⚡ Urgent: Account suspended. Click http://bank-verify.cx...
-                    </div>
-
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: rgba(240, 244, 243, 0.7); display: flex; justify-content: space-between;">
-                        <span>SMS / Whatsapp Scams</span>
-                        <span style="color: #EF4444; font-weight: 600;">Urgency Tactics</span>
-                    </div>
-                </div>
-
-                <!-- Pillar 3: Suspect Intelligence DB -->
-                <div class="pillar-card" style="background: rgba(10, 31, 46, 0.75); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 20px; text-align: left; position: relative; overflow: hidden; backdrop-filter: blur(10px);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #F0F4F3;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            Suspect Threat DB
-                        </span>
-                        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: rgba(245, 158, 11, 0.15); color: #F59E0B; padding: 3px 8px; border-radius: 12px; font-weight: 600;">UPI / PHONE LOOKUP</span>
-                    </div>
-
-                    <div style="display: flex; align-items: center; gap: 12px; height: 42px; margin: 4px 0 10px 0;">
-                        <svg width="40" height="40" viewBox="0 0 40 40">
-                            <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(245, 158, 11, 0.2)" stroke-width="2"/>
-                            <circle class="radar-ring" cx="20" cy="20" r="4" fill="none" stroke="#F59E0B" stroke-width="2"/>
-                            <circle cx="20" cy="20" r="4" fill="#F59E0B"/>
-                        </svg>
-                        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
-                            <div style="color: #F0F4F3; font-weight: 600;">Flagged: +91 98765-XXXXX</div>
-                            <div style="color: #F59E0B;">UPI: scammer@paytm</div>
-                        </div>
-                    </div>
-
-                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: rgba(240, 244, 243, 0.7); display: flex; justify-content: space-between;">
-                        <span>Central Intelligence</span>
-                        <span style="color: #F59E0B; font-weight: 600;">Risk Score: 92/100</span>
-                    </div>
-                </div>
-
             </div>
         </div>
         """
     )
 
 
+def hero_defense_hub():
+    """Backwards compatibility wrapper returning terminal mockup."""
+    return saas_terminal_mockup()
+
+
 def live_animated_waveform():
-    """Fallback waveform component preserved for backwards compatibility."""
-    return hero_defense_hub()
+    """Backwards compatibility wrapper returning terminal mockup."""
+    return saas_terminal_mockup()
 
 
 def hero() -> rx.Component:
     """
-    Comprehensive Hero Section Component.
-    Portrays the entire Multi-Agent Platform: Voice Deepfakes, Text Scam RAG, Suspect Intelligence, and AI Assistant.
+    Next.js SaaS Starter Inspired Hero Section Component.
+    Features Next.js SaaS layout, animated developer terminal, pill badge, and clean action CTAs.
     """
     return rx.box(
         rx.box(
             rx.vstack(
-                # Top Multi-Agent Platform Status Badge
+                # Next.js SaaS Starter Announcement Pill Badge
                 rx.hstack(
                     rx.box(
-                        width="8px",
-                        height="8px",
-                        border_radius="50%",
-                        background="#10B981",
-                        box_shadow="0 0 10px #10B981",
+                        "✨",
+                        font_size="13px",
                     ),
                     rx.text(
-                        "Multi-Agent AI Defense Suite Active",
-                        font_size="12px",
-                        font_weight="700",
-                        color="#F0F4F3",
-                        font_family="'IBM Plex Mono', monospace",
-                        user_select="none",
+                        "Multi-Agent AI Fraud Shield 2.0 Released",
+                        font_size="13px",
+                        font_weight="600",
+                        color="#0A1F2E",
+                        font_family="'Outfit', sans-serif",
                     ),
-                    rx.box(
-                        "•",
-                        color="rgba(240, 244, 243, 0.4)",
-                        font_size="12px",
-                    ),
-                    rx.text(
-                        "Voice • Text RAG • Suspect DB • AI Assistant",
-                        font_size="11px",
-                        font_weight="500",
-                        color="rgba(56, 189, 248, 0.9)",
-                        font_family="'IBM Plex Mono', monospace",
-                        user_select="none",
-                    ),
+                    rx.icon("arrow-right", size=14, color="#1B6E5B"),
                     spacing="2",
                     align="center",
                     padding_x="14px",
-                    padding_y="7px",
-                    background="rgba(27, 110, 91, 0.35)",
-                    border="1px solid rgba(27, 110, 91, 0.6)",
+                    padding_y="6px",
+                    background="#FFFFFF",
+                    border="1px solid #CBD5E1",
                     border_radius="20px",
-                    backdrop_filter="blur(8px)",
+                    box_shadow="0 2px 8px rgba(0,0,0,0.04)",
+                    cursor="pointer",
+                    _hover={"border_color": "#1B6E5B", "transform": "translateY(-1px)"},
+                    transition="all 0.2s ease",
                 ),
                 
-                # Main Headline & Subtitle reflecting the WHOLE project
+                # Next.js SaaS Starter Bold Headline & Subtitle
                 rx.heading(
-                    "All-in-One AI Platform Against Cyber Fraud",
-                    font_size={"initial": "30px", "sm": "42px", "md": "52px"},
+                    "Institutional Multi-Agent AI Platform Against Cyber Fraud",
+                    font_size={"initial": "32px", "sm": "46px", "md": "58px"},
                     font_weight="800",
-                    color="#F0F4F3",
+                    color="#0A1F2E",
                     font_family="'Space Grotesk', sans-serif",
                     text_align="center",
-                    line_height="1.15",
-                    max_width="980px",
-                    margin_top="16px",
+                    line_height="1.1",
+                    max_width="960px",
+                    margin_top="18px",
                     user_select="none",
                 ),
                 rx.text(
-                    "Institutional multi-agent intelligence fighting voice cloning deepfakes, SMS phishing scams, fraudulent UPI/bank accounts, and cyber threats in real-time.",
-                    font_size={"initial": "15px", "sm": "18px", "md": "19px"},
-                    color="rgba(240, 244, 243, 0.85)",
+                    "Protecting citizens and institutions with real-time cloned voice detection, Llama 3.3 SMS phishing dissection, and suspect registry risk scoring.",
+                    font_size={"initial": "16px", "sm": "18px", "md": "20px"},
+                    color="#475569",
                     font_family="'Outfit', sans-serif",
                     text_align="center",
-                    max_width="820px",
+                    max_width="780px",
                     margin_top="12px",
                     user_select="none",
                 ),
-
-                # Signature 3-Pillar Defense Hub Visual
-                rx.box(
-                    hero_defense_hub(),
-                    width="100%",
-                    margin_y="28px",
-                ),
                 
-                # Call to Action Buttons covering all pillars
+                # Call to Action Buttons (Next.js SaaS starter button layout)
                 rx.hstack(
                     rx.link(
                         rx.button(
                             rx.hstack(
-                                rx.icon("mic", size=18),
-                                rx.text("Scan Voice Call"),
+                                rx.icon("shield-alert", size=18),
+                                rx.text("Analyze a Call / Text"),
+                                rx.icon("arrow-right", size=16),
                                 spacing="2",
                             ),
                             size="3",
-                            background="#1B6E5B",
-                            color="#F0F4F3",
+                            background="#0A1F2E",
+                            color="#FFFFFF",
                             font_weight="700",
                             font_family="'Space Grotesk', sans-serif",
-                            padding_x="24px",
-                            padding_y="22px",
-                            border_radius="8px",
+                            padding_x="28px",
+                            padding_y="24px",
+                            border_radius="10px",
                             cursor="pointer",
-                            box_shadow="0 4px 14px rgba(27, 110, 91, 0.4)",
-                            _hover={"background": "#145C46", "transform": "translateY(-2px)"},
+                            box_shadow="0 4px 16px rgba(10, 31, 46, 0.25)",
+                            _hover={"background": "#1B6E5B", "transform": "translateY(-2px)"},
+                            transition="all 0.2s ease",
                         ),
                         href="/scan",
                         text_decoration="none",
@@ -249,119 +190,47 @@ def hero() -> rx.Component:
                     rx.link(
                         rx.button(
                             rx.hstack(
-                                rx.icon("shield-alert", size=18),
-                                rx.text("Check Suspect DB / Text Scam"),
-                                spacing="2",
-                            ),
-                            size="3",
-                            background="rgba(56, 189, 248, 0.15)",
-                            color="#38BDF8",
-                            border="1px solid rgba(56, 189, 248, 0.4)",
-                            font_weight="700",
-                            font_family="'Space Grotesk', sans-serif",
-                            padding_x="24px",
-                            padding_y="22px",
-                            border_radius="8px",
-                            cursor="pointer",
-                            _hover={"background": "rgba(56, 189, 248, 0.25)", "transform": "translateY(-2px)"},
-                        ),
-                        href="/suspect-intelligence",
-                        text_decoration="none",
-                    ),
-                    rx.link(
-                        rx.button(
-                            rx.hstack(
-                                rx.icon("book-open", size=18),
-                                rx.text("Help & Docs"),
+                                rx.icon("search", size=18),
+                                rx.text("Search Suspect DB"),
                                 spacing="2",
                             ),
                             size="3",
                             variant="outline",
-                            color="#F0F4F3",
-                            border="1px solid rgba(240, 244, 243, 0.3)",
-                            font_weight="600",
+                            color="#0A1F2E",
+                            border="1px solid #CBD5E1",
+                            font_weight="700",
                             font_family="'Space Grotesk', sans-serif",
-                            padding_x="20px",
-                            padding_y="22px",
-                            border_radius="8px",
+                            padding_x="24px",
+                            padding_y="24px",
+                            border_radius="10px",
                             cursor="pointer",
-                            _hover={"background": "rgba(255,255,255,0.08)", "transform": "translateY(-2px)"},
+                            background="#FFFFFF",
+                            _hover={"background": "#F8FAFC", "border_color": "#0A1F2E"},
+                            transition="all 0.2s ease",
                         ),
-                        href="/docs",
+                        href="/suspect-intelligence",
                         text_decoration="none",
                     ),
                     spacing="3",
                     align="center",
                     justify="center",
                     wrap="wrap",
-                    margin_top="16px",
+                    margin_top="24px",
                 ),
-                
-                # Bottom Full Platform Tech Architecture Strip
-                rx.grid(
-                    rx.box(
-                        rx.vstack(
-                            rx.text("VOICE ENGINE", font_size="10px", color="rgba(240, 244, 243, 0.5)", font_family="'IBM Plex Mono', monospace"),
-                            rx.text("Mitran14 + Groq Whisper", font_size="12px", font_weight="700", color="#38BDF8", font_family="'IBM Plex Mono', monospace"),
-                            spacing="0",
-                            align="center",
-                        ),
-                        padding="12px 18px",
-                        background="rgba(10, 31, 46, 0.6)",
-                        border="1px solid rgba(56, 189, 248, 0.3)",
-                        border_radius="8px",
-                    ),
-                    rx.box(
-                        rx.vstack(
-                            rx.text("TEXT & RAG ENGINE", font_size="10px", color="rgba(240, 244, 243, 0.5)", font_family="'IBM Plex Mono', monospace"),
-                            rx.text("Llama 3.3 70B Threat KB", font_size="12px", font_weight="700", color="#10B981", font_family="'IBM Plex Mono', monospace"),
-                            spacing="0",
-                            align="center",
-                        ),
-                        padding="12px 18px",
-                        background="rgba(10, 31, 46, 0.6)",
-                        border="1px solid rgba(16, 185, 129, 0.3)",
-                        border_radius="8px",
-                    ),
-                    rx.box(
-                        rx.vstack(
-                            rx.text("SUSPECT REGISTRY", font_size="10px", color="rgba(240, 244, 243, 0.5)", font_family="'IBM Plex Mono', monospace"),
-                            rx.text("UPI / Phone Risk Score", font_size="12px", font_weight="700", color="#F59E0B", font_family="'IBM Plex Mono', monospace"),
-                            spacing="0",
-                            align="center",
-                        ),
-                        padding="12px 18px",
-                        background="rgba(10, 31, 46, 0.6)",
-                        border="1px solid rgba(245, 158, 11, 0.3)",
-                        border_radius="8px",
-                    ),
-                    rx.box(
-                        rx.vstack(
-                            rx.text("SYSTEM PERFORMANCE", font_size="10px", color="rgba(240, 244, 243, 0.5)", font_family="'IBM Plex Mono', monospace"),
-                            rx.text("< 1.8s Real-Time Latency", font_size="12px", font_weight="700", color="#A7F3D0", font_family="'IBM Plex Mono', monospace"),
-                            spacing="0",
-                            align="center",
-                        ),
-                        padding="12px 18px",
-                        background="rgba(10, 31, 46, 0.6)",
-                        border="1px solid rgba(167, 243, 208, 0.3)",
-                        border_radius="8px",
-                    ),
-                    columns=rx.breakpoints(initial="1", sm="2", md="4"),
-                    spacing="3",
-                    width="100%",
-                    max_width="980px",
-                    margin_top="28px",
-                ),
+
+                # Next.js SaaS Animated Terminal Mockup Visual
+                saas_terminal_mockup(),
+
                 spacing="4",
                 align="center",
                 padding_y={"initial": "40px", "sm": "60px", "md": "70px"},
             ),
-            max_width="100%",
+            max_width="1200px",
             padding_x={"initial": "16px", "md": "32px"},
+            margin_x="auto",
         ),
-        background="linear-gradient(135deg, #061521 0%, #0A2E30 50%, #0F3D3E 100%)",
-        border_bottom="3px solid #1B6E5B",
+        background="linear-gradient(180deg, #F8FAFC 0%, #EDF2F7 100%)",
+        border_bottom="1px solid #E2E8F0",
         position="relative",
         overflow="hidden",
         width="100%",
