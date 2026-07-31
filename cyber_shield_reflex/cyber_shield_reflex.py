@@ -4,7 +4,6 @@ from cyber_shield_reflex.components import (
     hero,
     analysis_panel,
     how_it_works,
-    architecture,
     footer,
     bot_agent,
     suspect_intelligence,
@@ -13,12 +12,12 @@ from cyber_shield_reflex.components import (
 
 
 def index() -> rx.Component:
-    """Home Landing Page Component (Clean layout without embedded FAQs)."""
+    """Home Landing Page Component (Helpline & Register a Complaint ribbon enabled)."""
     return rx.box(
         header(),
         hero(),
         how_it_works(),
-        footer(),
+        footer(show_helpline_ribbon=True),
         bot_agent(),
         background="#F7F9F8",
         min_height="100vh",
@@ -33,7 +32,7 @@ def scan_page() -> rx.Component:
     return rx.box(
         header(),
         analysis_panel(),
-        footer(),
+        footer(show_helpline_ribbon=False),
         bot_agent(),
         background="#F7F9F8",
         min_height="100vh",
@@ -48,7 +47,7 @@ def suspect_intelligence_page() -> rx.Component:
     return rx.box(
         header(),
         suspect_intelligence(),
-        footer(),
+        footer(show_helpline_ribbon=False),
         bot_agent(),
         background="#F7F9F8",
         min_height="100vh",
@@ -89,7 +88,7 @@ def volunteers_page() -> rx.Component:
             width="100%",
             padding_x={"initial": "16px", "md": "48px"},
         ),
-        footer(),
+        footer(show_helpline_ribbon=False),
         bot_agent(),
         background="#F7F9F8",
         min_height="100vh",
@@ -100,12 +99,11 @@ def volunteers_page() -> rx.Component:
 
 
 def docs_page() -> rx.Component:
-    """Dedicated Help, Architecture & Official FAQs Page."""
+    """Dedicated Help & Official FAQs Page (Clean FAQ Accordion View)."""
     return rx.box(
         header(),
-        architecture(),
         faq(),
-        footer(),
+        footer(show_helpline_ribbon=False),
         bot_agent(),
         background="#F7F9F8",
         min_height="100vh",
@@ -145,4 +143,4 @@ app.add_page(index, route="/", title="Cyber Fraud Shield | Home")
 app.add_page(scan_page, route="/scan", title="Cyber Fraud Shield | Report & Scan")
 app.add_page(suspect_intelligence_page, route="/suspect-intelligence", title="Cyber Fraud Shield | Suspect Intelligence")
 app.add_page(volunteers_page, route="/volunteers", title="Cyber Fraud Shield | Volunteers")
-app.add_page(docs_page, route="/docs", title="Cyber Fraud Shield | Help & Docs / FAQs")
+app.add_page(docs_page, route="/docs", title="Cyber Fraud Shield | Help & FAQs")

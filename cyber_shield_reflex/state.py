@@ -152,6 +152,20 @@ class State(rx.State):
         self.auth_error = ""
         self.auth_success = "Logged out successfully."
 
+    # Complaint Prerequisites & Disclaimer Dialog State
+    complaint_modal_open: bool = False
+    disclaimer_modal_open: bool = False
+
+    def toggle_complaint_modal(self):
+        self.complaint_modal_open = not self.complaint_modal_open
+
+    def proceed_to_complaint(self):
+        self.complaint_modal_open = False
+        return rx.redirect("/scan")
+
+    def toggle_disclaimer_modal(self):
+        self.disclaimer_modal_open = not self.disclaimer_modal_open
+
     # Floating AI Bot Popup State
     bot_open: bool = False
     bot_input: str = ""
