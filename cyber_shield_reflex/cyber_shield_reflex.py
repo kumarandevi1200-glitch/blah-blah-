@@ -2,8 +2,10 @@ import reflex as rx
 from cyber_shield_reflex.components import (
     header,
     hero,
+    agent_ecosystem,
     analysis_panel,
     how_it_works,
+    architecture,
     footer,
     bot_agent,
     suspect_intelligence,
@@ -16,13 +18,16 @@ def index() -> rx.Component:
     return rx.box(
         header(),
         hero(),
+        agent_ecosystem(),
         how_it_works(),
         footer(show_helpline_ribbon=True),
         bot_agent(),
         background="#F7F9F8",
         min_height="100vh",
         width="100%",
+        max_width="100%",
         overflow_x="hidden",
+        box_sizing="border-box",
         font_family="'Outfit', sans-serif",
     )
 
@@ -123,12 +128,15 @@ app = rx.App(
         "color": "#0D1B1E",
         "user_select": "none",
         "cursor": "default",
+        "*, *::before, *::after": {
+            "box_sizing": "border-box !important",
+        },
         "html, body, #root, .radix-themes, .rt-Theme, .rt-Container": {
             "max_width": "100% !important",
             "width": "100% !important",
             "margin": "0",
             "padding": "0",
-            "box_sizing": "border-box",
+            "box_sizing": "border-box !important",
             "overflow_x": "hidden !important",
         },
         "::selection": {

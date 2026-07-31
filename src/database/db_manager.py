@@ -34,35 +34,10 @@ class DatabaseManager:
             conn.close()
 
     def init_db(self):
-        """Creates 'users', 'user_profiles', and 'idempotency_records' tables if they do not exist."""
+        """Creates 'idempotency_records' and 'idempotent_scan_history' tables if they do not exist."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            
-            # Table 1: users (Authentication credentials)
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                salt TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            """)
 
-            # Table 2: user_profiles (Personal details page)
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS user_profiles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER UNIQUE NOT NULL,
-                full_name TEXT NOT NULL,
-                age INTEGER,
-                mobile_number TEXT NOT NULL,
-                address TEXT DEFAULT '',
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-            """)
 
             # Table 3: idempotency_records (Data Idempotency cache for Backend & Agents)
             cursor.execute("""
@@ -87,6 +62,22 @@ class DatabaseManager:
             );
             """)
             conn.commit()
+
+    def drop_all_tables(self) -> bool:
+        """Drops all tables from the database."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA foreign_keys = OFF;")
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+                tables = [row["name"] for row in cursor.fetchall()]
+                for table in tables:
+                    cursor.execute(f"DROP TABLE IF EXISTS {table};")
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"[DatabaseManager] Error dropping tables: {e}")
+            return False
 
     def generate_idempotency_key(self, payload: Any, prefix: str = "") -> str:
         """

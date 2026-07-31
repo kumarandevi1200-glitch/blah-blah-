@@ -1,6 +1,4 @@
 import reflex as rx
-from cyber_shield_reflex.state import State
-from cyber_shield_reflex.components.user_modal import user_modal
 
 
 def custom_shield_logo():
@@ -41,11 +39,9 @@ def nav_link(label: str, href: str) -> rx.Component:
 
 def header() -> rx.Component:
     """
-    Header Component with full-width responsive ribbon layout and top-right User Login Button.
+    Header Component with full-width responsive ribbon layout and clean navigation links.
     """
     return rx.box(
-        user_modal(),
-        
         # Tier 1: Utility Strip (Deep Green background)
         rx.box(
             rx.box(
@@ -116,50 +112,13 @@ def header() -> rx.Component:
                         text_decoration="none",
                     ),
                     
-                    # Right Navigation Links + Top Right User Login Button
+                    # Right Navigation Links
                     rx.hstack(
                         nav_link("Home", "/"),
                         nav_link("Report Voice Fraud", "/scan"),
                         nav_link("Suspect Intelligence", "/suspect-intelligence"),
                         nav_link("Volunteers", "/volunteers"),
                         nav_link("Help & Docs / FAQs", "/docs"),
-                        
-                        # Top-Right User Login / Profile Button
-                        rx.cond(
-                            State.is_logged_in,
-                            rx.button(
-                                rx.hstack(
-                                    rx.icon("user-check", size=16, color="#FFFFFF"),
-                                    rx.text(State.logged_in_username, font_size="13px", font_weight="700"),
-                                    spacing="2",
-                                    align="center",
-                                ),
-                                size="2",
-                                background="#1B6E5B",
-                                color="#FFFFFF",
-                                on_click=State.toggle_login_modal,  # type: ignore
-                                cursor="pointer",
-                                padding_x="14px",
-                                border_radius="6px",
-                            ),
-                            rx.button(
-                                rx.hstack(
-                                    rx.icon("user", size=16),
-                                    rx.text("Login / Register", font_size="13px", font_weight="600"),
-                                    spacing="2",
-                                    align="center",
-                                ),
-                                size="2",
-                                variant="outline",
-                                color="#1B6E5B",
-                                border="1px solid #1B6E5B",
-                                on_click=State.toggle_login_modal,  # type: ignore
-                                cursor="pointer",
-                                padding_x="14px",
-                                border_radius="6px",
-                                _hover={"background": "#F0F4F3"},
-                            ),
-                        ),
                         spacing="2",
                         align="center",
                         display={"initial": "none", "md": "flex"},
