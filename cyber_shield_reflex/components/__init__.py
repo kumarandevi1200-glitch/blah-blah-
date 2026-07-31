@@ -7,5 +7,6 @@ from cyber_shield_reflex.components.footer import footer
 from cyber_shield_reflex.components.bot_agent import bot_agent
 from cyber_shield_reflex.components.suspect_intelligence import suspect_intelligence
 from cyber_shield_reflex.components.faq import faq
+from cyber_shield_reflex.components.user_modal import user_modal
 
-__all__ = ["header", "hero", "analysis_panel", "how_it_works", "architecture", "footer", "bot_agent", "suspect_intelligence", "faq"]
+__all__ = ["header", "hero", "analysis_panel", "how_it_works", "architecture", "footer", "bot_agent", "suspect_intelligence", "faq", "user_modal"]

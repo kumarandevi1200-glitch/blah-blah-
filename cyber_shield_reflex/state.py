@@ -44,6 +44,114 @@ class State(rx.State):
     engine_used: str = "Hugging Face Inference API (Mitran14/speach-agent)"
     idempotent_hit: bool = False
 
+    # User Authentication & Profile Modal State
+    is_logged_in: bool = False
+    logged_in_username: str = ""
+    user_profile: Dict[str, Any] = {}
+    login_modal_open: bool = False
+    login_tab: str = "login"  # "login", "register", "profile"
+    form_username: str = ""
+    form_email: str = ""
+    form_password: str = ""
+    form_full_name: str = ""
+    form_age: str = "25"
+    form_mobile: str = ""
+    form_address: str = ""
+    auth_error: str = ""
+    auth_success: str = ""
+
+    def toggle_login_modal(self):
+        self.login_modal_open = not self.login_modal_open
+        self.auth_error = ""
+        self.auth_success = ""
+
+    def set_login_tab(self, tab: str):
+        self.login_tab = tab
+        self.auth_error = ""
+        self.auth_success = ""
+
+    def set_form_username(self, val: str):
+        self.form_username = val
+
+    def set_form_email(self, val: str):
+        self.form_email = val
+
+    def set_form_password(self, val: str):
+        self.form_password = val
+
+    def set_form_full_name(self, val: str):
+        self.form_full_name = val
+
+    def set_form_age(self, val: str):
+        self.form_age = val
+
+    def set_form_mobile(self, val: str):
+        self.form_mobile = val
+
+    def set_form_address(self, val: str):
+        self.form_address = val
+
+    def handle_user_login(self):
+        self.auth_error = ""
+        self.auth_success = ""
+        if not self.form_username.strip() or not self.form_password.strip():
+            self.auth_error = "Please enter both username/email and password."
+            return
+
+        user_data, msg = db_mgr.authenticate_user(self.form_username, self.form_password)
+        if not user_data:
+            self.auth_error = msg
+            return
+
+        self.is_logged_in = True
+        self.logged_in_username = user_data.get("username", self.form_username)
+        self.user_profile = user_data
+        self.auth_success = f"Welcome back, {self.logged_in_username}!"
+        self.login_tab = "profile"
+        self.form_password = ""
+
+    def handle_user_register(self):
+        self.auth_error = ""
+        self.auth_success = ""
+        try:
+            age_int = int(self.form_age)
+        except ValueError:
+            age_int = 25
+
+        success, msg = db_mgr.register_user(
+            username=self.form_username,
+            email=self.form_email,
+            password=self.form_password,
+            full_name=self.form_full_name,
+            age=age_int,
+            mobile_number=self.form_mobile,
+            address=self.form_address,
+        )
+
+        if not success:
+            self.auth_error = msg
+            return
+
+        user_data, _ = db_mgr.authenticate_user(self.form_username, self.form_password)
+        if user_data:
+            self.is_logged_in = True
+            self.logged_in_username = user_data.get("username", self.form_username)
+            self.user_profile = user_data
+            self.auth_success = "Profile registered successfully!"
+            self.login_tab = "profile"
+            self.form_password = ""
+        else:
+            self.auth_success = msg
+            self.login_tab = "login"
+
+    def handle_user_logout(self):
+        self.is_logged_in = False
+        self.logged_in_username = ""
+        self.user_profile = {}
+        self.login_tab = "login"
+        self.auth_error = ""
+        self.auth_success = "Logged out successfully."
+
     # Floating AI Bot Popup State
     bot_open: bool = False
     bot_input: str = ""
