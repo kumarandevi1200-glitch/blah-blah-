@@ -14,7 +14,7 @@ class DatabaseManager:
     for both backend operations and AI agents.
     """
 
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: str | None = None):
         if db_path is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             db_path = os.path.join(base_dir, "cyber_shield.db")
@@ -186,7 +186,7 @@ class DatabaseManager:
             total = cursor.fetchone()["total"]
             return {"total_records": total, "by_scope": stats_by_scope}
 
-    def _hash_password(self, password: str, salt: bytes = None) -> Tuple[str, str]:
+    def _hash_password(self, password: str, salt: bytes | None = None) -> Tuple[str, str]:
         """Hashes password using PBKDF2-HMAC-SHA256 with 100,000 iterations."""
         if salt is None:
             salt = secrets.token_bytes(16)
